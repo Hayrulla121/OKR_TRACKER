@@ -43,18 +43,10 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
         <div
             className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
             onClick={handleBackdropClick}
-            onMouseDown={(e) => {
-                if (e.target === e.currentTarget) {
-                    e.stopPropagation();
-                }
-            }}
         >
             <div
                 className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
                 onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                onKeyUp={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">

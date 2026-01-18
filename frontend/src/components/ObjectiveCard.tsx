@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Objective, KeyResult } from '../types/okr';
 import { keyResultApi } from '../services/api';
 import Speedometer from './Speedometer';
@@ -12,13 +12,87 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
     const [expanded, setExpanded] = useState(false);
     const defaultScore = { score: 0, level: 'below' as const, color: '#d9534f', percentage: 0 };
 
-    const handleActualValueChange = async (kr: KeyResult, value: string) => {
+    // Local state to track input values for each key result
+    const [localValues, setLocalValues] = useState<Record<string, string>>({});
+
+    // Track which input currently has focus
+    const focusedIdRef = useRef<string | null>(null);
+
+    // Track if we're currently saving
+    const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+
+    // Debounce timers
+    const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
+    // Sync local values with props when objective changes
+    useEffect(() => {
+        const newValues: Record<string, string> = {};
+        objective.keyResults.forEach(kr => {
+            if (focusedIdRef.current === kr.id) {
+                newValues[kr.id] = localValues[kr.id] ?? kr.actualValue ?? '';
+            } else {
+                newValues[kr.id] = kr.actualValue ?? '';
+            }
+        });
+        setLocalValues(newValues);
+    }, [objective.keyResults]);
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+        };
+    }, []);
+
+    const saveValue = useCallback(async (krId: string, krData: KeyResult, value: string, skipRefresh = false) => {
+        setSavingIds(prev => new Set(prev).add(krId));
         try {
-            await keyResultApi.update(kr.id, { ...kr, actualValue: value });
-            onUpdate();
+            await keyResultApi.update(krId, { ...krData, actualValue: value });
+            if (!skipRefresh) {
+                if (focusedIdRef.current === krId) {
+                    focusedIdRef.current = null;
+                }
+                onUpdate();
+            }
         } catch (error) {
             console.error('Failed to update key result:', error);
+        } finally {
+            setSavingIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(krId);
+                return newSet;
+            });
         }
+    }, [onUpdate]);
+
+    const handleActualValueChange = (kr: KeyResult, value: string) => {
+        setLocalValues(prev => ({
+            ...prev,
+            [kr.id]: value
+        }));
+
+        if (debounceTimers.current[kr.id]) {
+            clearTimeout(debounceTimers.current[kr.id]);
+        }
+
+        debounceTimers.current[kr.id] = setTimeout(() => {
+            saveValue(kr.id, kr, value, true);
+        }, 1000);
+    };
+
+    const handleFocus = (krId: string) => {
+        focusedIdRef.current = krId;
+    };
+
+    const handleBlur = (kr: KeyResult) => {
+        if (debounceTimers.current[kr.id]) {
+            clearTimeout(debounceTimers.current[kr.id]);
+            delete debounceTimers.current[kr.id];
+        }
+
+        const value = localValues[kr.id] ?? kr.actualValue ?? '';
+        focusedIdRef.current = null;
+        saveValue(kr.id, kr, value, false);
     };
 
     const getMetricTypeLabel = (type: string) => {
@@ -98,9 +172,12 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
                                         <label className="text-sm font-semibold text-slate-600">Actual:</label>
                                         {kr.metricType === 'QUALITATIVE' ? (
                                             <select
-                                                value={kr.actualValue || 'E'}
+                                                value={localValues[kr.id] ?? kr.actualValue ?? 'E'}
                                                 onChange={(e) => handleActualValueChange(kr, e.target.value)}
-                                                className="border-2 border-slate-300 rounded-lg px-3 py-2 w-20 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                onFocus={() => handleFocus(kr.id)}
+                                                onBlur={() => handleBlur(kr)}
+                                                disabled={savingIds.has(kr.id)}
+                                                className="border-2 border-slate-300 rounded-lg px-3 py-2 w-20 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                             >
                                                 <option value="A">A</option>
                                                 <option value="B">B</option>
@@ -109,13 +186,23 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
                                                 <option value="E">E</option>
                                             </select>
                                         ) : (
-                                            <input
-                                                type="number"
-                                                value={kr.actualValue || ''}
-                                                onChange={(e) => handleActualValueChange(kr, e.target.value)}
-                                                className="border-2 border-slate-300 rounded-lg px-3 py-2 w-28 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                placeholder="0"
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={localValues[kr.id] ?? kr.actualValue ?? ''}
+                                                    onChange={(e) => handleActualValueChange(kr, e.target.value)}
+                                                    onFocus={() => handleFocus(kr.id)}
+                                                    onBlur={() => handleBlur(kr)}
+                                                    disabled={savingIds.has(kr.id)}
+                                                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-28 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                    placeholder="0"
+                                                />
+                                                {savingIds.has(kr.id) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                         {kr.unit && <span className="text-sm font-medium text-slate-500">{kr.unit}</span>}
                                     </div>

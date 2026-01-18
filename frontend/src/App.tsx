@@ -109,17 +109,17 @@ function App() {
   }
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex">
-        {/* Left Sidebar - Control Panel */}
-        <aside className="w-64 bg-white border-r border-slate-200 shadow-xl flex flex-col">
+      <div className="h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex overflow-hidden">
+        {/* Left Sidebar - Control Panel - Fixed height with sticky buttons */}
+        <aside className="w-64 bg-white border-r border-slate-200 shadow-xl flex flex-col h-screen">
           {/* Sidebar Header */}
-          <div className="bg-gradient-to-br from-amber-600 to-orange-600 text-white p-4 shadow-lg">
+          <div className="bg-gradient-to-br from-amber-600 to-orange-600 text-white p-4 shadow-lg flex-shrink-0">
             <h2 className="text-lg font-bold mb-0.5">Control Panel</h2>
             <p className="text-amber-100 text-xs">Departments</p>
           </div>
 
           {/* Departments List - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
             {departments.map((dept) => (
                 <button
                     key={dept.id}
@@ -161,8 +161,8 @@ function App() {
             )}
           </div>
 
-          {/* Settings and Export Buttons */}
-          <div className="p-3 border-t border-slate-200 space-y-2">
+          {/* Settings and Export Buttons - Fixed at bottom */}
+          <div className="p-3 border-t border-slate-200 space-y-2 flex-shrink-0 bg-white">
             <button
                 onClick={() => setShowSettings(true)}
                 className="w-full px-3 py-2 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-lg text-sm font-semibold hover:from-slate-800 hover:to-slate-900 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
@@ -426,13 +426,13 @@ function App() {
                 department={modalDepartment}
                 onClose={() => setModalDepartment(null)}
                 onUpdate={async () => {
-                    await fetchDepartments();
-                    // Update the modal with fresh data
-                    const response = await departmentApi.getAll();
-                    const updatedDept = response.data.find(d => d.id === modalDepartment.id);
-                    if (updatedDept) {
-                        setModalDepartment(updatedDept);
-                    }
+                  await fetchDepartments();
+                  // Update the modal with fresh data
+                  const response = await departmentApi.getAll();
+                  const updatedDept = response.data.find(d => d.id === modalDepartment.id);
+                  if (updatedDept) {
+                    setModalDepartment(updatedDept);
+                  }
                 }}
             />
         )}

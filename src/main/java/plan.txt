@@ -1,0 +1,7 @@
+Understanding the data model
+JPA is a specification—a set of rules and interfaces that define how Java objects should be mapped to relational database tables.
+
+Organization
+└── Departments (1:N)
+    └── Objectives (1:N) - with weight %
+        └── Key Results (1:N) - with weight %, thresholds, actual values

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Department, Objective, KeyResult } from '../types/okr';
-import { keyResultApi } from '../services/api';
+import { Department, Objective, KeyResult, ScoreLevel } from '../types/okr';
+import { keyResultApi, scoreLevelApi } from '../services/api';
 import Speedometer from './Speedometer';
 import { useLanguage } from '../i18n';
 
@@ -8,15 +8,30 @@ interface DepartmentCardProps {
     department: Department;
     objective: Objective;
     onUpdate: () => void;
+    scoreLevels?: ScoreLevel[];
 }
 
-const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, onUpdate }) => {
+const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, onUpdate, scoreLevels: propScoreLevels }) => {
     const { t } = useLanguage();
     const [expanded, setExpanded] = useState(true);
     const [localValues, setLocalValues] = useState<Record<string, string>>({});
     const focusedIdRef = useRef<string | null>(null);
     const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
     const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+    const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>(propScoreLevels || []);
+
+    // Fetch score levels if not provided via props
+    useEffect(() => {
+        if (!propScoreLevels) {
+            scoreLevelApi.getAll()
+                .then(response => {
+                    setScoreLevels(response.data.sort((a, b) => a.scoreValue - b.scoreValue));
+                })
+                .catch(err => console.error('Failed to fetch score levels:', err));
+        } else {
+            setScoreLevels(propScoreLevels);
+        }
+    }, [propScoreLevels]);
 
     useEffect(() => {
         const newValues: Record<string, string> = {};
@@ -95,19 +110,93 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
     };
 
     const getScoreLevelLabel = (score: number): string => {
-        if (score >= 5) return t.exceptional;
-        if (score >= 4.75) return t.veryGood;
-        if (score >= 4.5) return t.good;
-        if (score >= 4.25) return t.meets;
-        return t.below;
+        if (scoreLevels.length === 0) {
+            // Fallback to defaults
+            if (score >= 5) return t.exceptional;
+            if (score >= 4.75) return t.veryGood;
+            if (score >= 4.5) return t.good;
+            if (score >= 4.25) return t.meets;
+            return t.below;
+        }
+        // Find the appropriate level from dynamic score levels
+        for (let i = scoreLevels.length - 1; i >= 0; i--) {
+            if (score >= scoreLevels[i].scoreValue) {
+                return scoreLevels[i].name;
+            }
+        }
+        return scoreLevels[0]?.name || t.below;
     };
 
     const getScoreLevelColor = (score: number): string => {
-        if (score >= 5) return '#1e7b34';
-        if (score >= 4.75) return '#28a745';
-        if (score >= 4.5) return '#5cb85c';
-        if (score >= 4.25) return '#f0ad4e';
-        return '#d9534f';
+        if (scoreLevels.length === 0) {
+            // Fallback to defaults
+            if (score >= 5) return '#1e7b34';
+            if (score >= 4.75) return '#28a745';
+            if (score >= 4.5) return '#5cb85c';
+            if (score >= 4.25) return '#f0ad4e';
+            return '#d9534f';
+        }
+        // Find the appropriate color from dynamic score levels
+        for (let i = scoreLevels.length - 1; i >= 0; i--) {
+            if (score >= scoreLevels[i].scoreValue) {
+                return scoreLevels[i].color;
+            }
+        }
+        return scoreLevels[0]?.color || '#d9534f';
+    };
+
+    // Map backend's 5-threshold structure to dynamic score levels
+    const getThresholdsForDisplay = (kr: KeyResult): { name: string; value: number; color: string }[] => {
+        const backendThresholds = [
+            kr.thresholds.below,
+            kr.thresholds.meets,
+            kr.thresholds.good,
+            kr.thresholds.veryGood,
+            kr.thresholds.exceptional
+        ];
+
+        if (scoreLevels.length === 0) {
+            // Fallback defaults
+            return [
+                { name: t.below, value: backendThresholds[0], color: '#dc3545' },
+                { name: t.meets, value: backendThresholds[1], color: '#ffc107' },
+                { name: t.good, value: backendThresholds[2], color: '#5cb85c' },
+                { name: t.veryGood, value: backendThresholds[3], color: '#28a745' },
+                { name: t.exceptional, value: backendThresholds[4], color: '#1e7b34' }
+            ];
+        }
+
+        const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
+        const result: { name: string; value: number; color: string }[] = [];
+
+        if (sortedLevels.length === 5) {
+            // Direct mapping
+            sortedLevels.forEach((level, i) => {
+                result.push({ name: level.name, value: backendThresholds[i], color: level.color });
+            });
+        } else if (sortedLevels.length === 4) {
+            // Map: below->0, meets->1, good->2, exceptional->4
+            result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[1], color: sortedLevels[1].color });
+            result.push({ name: sortedLevels[2].name, value: backendThresholds[2], color: sortedLevels[2].color });
+            result.push({ name: sortedLevels[3].name, value: backendThresholds[4], color: sortedLevels[3].color });
+        } else if (sortedLevels.length === 3) {
+            // Map: below->0, good->2, exceptional->4
+            result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[2], color: sortedLevels[1].color });
+            result.push({ name: sortedLevels[2].name, value: backendThresholds[4], color: sortedLevels[2].color });
+        } else if (sortedLevels.length === 2) {
+            // Map: below->0, exceptional->4
+            result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[4], color: sortedLevels[1].color });
+        } else {
+            // Single level or empty - just show whatever we have
+            sortedLevels.forEach((level, i) => {
+                result.push({ name: level.name, value: backendThresholds[Math.min(i, 4)], color: level.color });
+            });
+        }
+
+        return result;
     };
 
     const getMetricTypeLabel = (metricType: string): string => {
@@ -212,21 +301,21 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                     <th className="px-3 py-2 text-left font-bold">KR</th>
                                     <th className="px-3 py-2 text-left font-bold">{t.keyResult}</th>
                                     <th className="px-3 py-2 text-center font-bold">{t.actual}</th>
-                                    <th className="px-3 py-2 text-center font-bold bg-red-600">
-                                        {t.below}<br/>3.00
-                                    </th>
-                                    <th className="px-3 py-2 text-center font-bold bg-orange-500">
-                                        {t.meets}<br/>4.25
-                                    </th>
-                                    <th className="px-3 py-2 text-center font-bold bg-lime-500">
-                                        {t.good}<br/>4.50
-                                    </th>
-                                    <th className="px-3 py-2 text-center font-bold bg-green-600">
-                                        {t.veryGood}<br/>4.75
-                                    </th>
-                                    <th className="px-3 py-2 text-center font-bold bg-emerald-700">
-                                        {t.exceptional}<br/>5.00
-                                    </th>
+                                    {(scoreLevels.length > 0 ? [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue) : [
+                                        { name: t.below, scoreValue: 3.0, color: '#dc3545' },
+                                        { name: t.meets, scoreValue: 4.25, color: '#f0ad4e' },
+                                        { name: t.good, scoreValue: 4.5, color: '#5cb85c' },
+                                        { name: t.veryGood, scoreValue: 4.75, color: '#28a745' },
+                                        { name: t.exceptional, scoreValue: 5.0, color: '#1e7b34' }
+                                    ]).map((level) => (
+                                        <th
+                                            key={level.name}
+                                            className="px-3 py-2 text-center font-bold"
+                                            style={{ backgroundColor: level.color }}
+                                        >
+                                            {level.name}<br/>{level.scoreValue.toFixed(2)}
+                                        </th>
+                                    ))}
                                     <th className="px-3 py-2 text-center font-bold">{t.score}</th>
                                 </tr>
                                 </thead>
@@ -287,21 +376,18 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-3 py-3 text-center bg-red-50 font-semibold">
-                                            {kr.metricType === 'LOWER_BETTER' ? '>' : '<'}{kr.thresholds.below}
-                                        </td>
-                                        <td className="px-3 py-3 text-center bg-orange-50 font-semibold">
-                                            ≥{kr.thresholds.meets}
-                                        </td>
-                                        <td className="px-3 py-3 text-center bg-lime-50 font-semibold">
-                                            ≥{kr.thresholds.good}
-                                        </td>
-                                        <td className="px-3 py-3 text-center bg-green-50 font-semibold">
-                                            ≥{kr.thresholds.veryGood}
-                                        </td>
-                                        <td className="px-3 py-3 text-center bg-emerald-50 font-semibold">
-                                            ≥{kr.thresholds.exceptional}
-                                        </td>
+                                        {getThresholdsForDisplay(kr).map((threshold, thresholdIndex) => (
+                                            <td
+                                                key={threshold.name}
+                                                className="px-3 py-3 text-center font-semibold"
+                                                style={{ backgroundColor: `${threshold.color}20` }}
+                                            >
+                                                {thresholdIndex === 0
+                                                    ? (kr.metricType === 'LOWER_BETTER' ? '>' : '<')
+                                                    : '≥'
+                                                }{threshold.value}
+                                            </td>
+                                        ))}
                                         <td className="px-3 py-3 text-center">
                                             {kr.score && (
                                                 <div
@@ -317,7 +403,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
 
                                 {/* Overall Calculation Row */}
                                 <tr className="bg-gradient-to-r from-yellow-100 to-amber-100 border-t-4 border-amber-400">
-                                    <td colSpan={8} className="px-3 py-3 font-bold text-slate-800 text-right">
+                                    <td colSpan={3 + (scoreLevels.length > 0 ? scoreLevels.length : 5)} className="px-3 py-3 font-bold text-slate-800 text-right">
                                         {t.averageScore} (Sum of all KR scores / {objective.keyResults.length}) =
                                     </td>
                                     <td className="px-3 py-3 text-center">

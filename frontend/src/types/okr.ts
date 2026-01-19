@@ -1,6 +1,6 @@
 export interface ScoreResult {
     score: number;
-    level: 'below' | 'meets' | 'good' | 'very_good' | 'exceptional';
+    level: string; // Dynamic level name from score levels configuration
     color: string;
     percentage: number;
 }

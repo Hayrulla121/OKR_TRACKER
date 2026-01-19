@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Objective, KeyResult } from '../types/okr';
-import { keyResultApi } from '../services/api';
+import { Objective, KeyResult, ScoreLevel } from '../types/okr';
+import { keyResultApi, scoreLevelApi } from '../services/api';
 import Speedometer from './Speedometer';
 
 interface ObjectiveCardProps {
     objective: Objective;
     onUpdate: () => void;
+    scoreLevels?: ScoreLevel[];
 }
 
-const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) => {
+const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, scoreLevels: propScoreLevels }) => {
     const [expanded, setExpanded] = useState(false);
-    const defaultScore = { score: 0, level: 'below' as const, color: '#d9534f', percentage: 0 };
+    const defaultScore = { score: 0, level: 'below', color: '#d9534f', percentage: 0 };
 
     // Local state to track input values for each key result
     const [localValues, setLocalValues] = useState<Record<string, string>>({});
@@ -23,6 +24,22 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
 
     // Debounce timers
     const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
+    // Score levels state
+    const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>(propScoreLevels || []);
+
+    // Fetch score levels if not provided via props
+    useEffect(() => {
+        if (!propScoreLevels) {
+            scoreLevelApi.getAll()
+                .then(response => {
+                    setScoreLevels(response.data.sort((a, b) => a.scoreValue - b.scoreValue));
+                })
+                .catch(err => console.error('Failed to fetch score levels:', err));
+        } else {
+            setScoreLevels(propScoreLevels);
+        }
+    }, [propScoreLevels]);
 
     // Sync local values with props when objective changes
     useEffect(() => {
@@ -104,6 +121,55 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
         }
     };
 
+    // Map backend's 5-threshold structure to dynamic score levels
+    const getThresholdsForDisplay = (kr: KeyResult): { name: string; value: number; color: string }[] => {
+        const backendThresholds = [
+            kr.thresholds.below,
+            kr.thresholds.meets,
+            kr.thresholds.good,
+            kr.thresholds.veryGood,
+            kr.thresholds.exceptional
+        ];
+
+        if (scoreLevels.length === 0) {
+            // Fallback defaults
+            return [
+                { name: 'Below', value: backendThresholds[0], color: '#dc3545' },
+                { name: 'Meets', value: backendThresholds[1], color: '#ffc107' },
+                { name: 'Good', value: backendThresholds[2], color: '#5cb85c' },
+                { name: 'Very Good', value: backendThresholds[3], color: '#28a745' },
+                { name: 'Exceptional', value: backendThresholds[4], color: '#1e7b34' }
+            ];
+        }
+
+        const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
+        const result: { name: string; value: number; color: string }[] = [];
+
+        if (sortedLevels.length === 5) {
+            sortedLevels.forEach((level, i) => {
+                result.push({ name: level.name, value: backendThresholds[i], color: level.color });
+            });
+        } else if (sortedLevels.length === 4) {
+            result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[1], color: sortedLevels[1].color });
+            result.push({ name: sortedLevels[2].name, value: backendThresholds[2], color: sortedLevels[2].color });
+            result.push({ name: sortedLevels[3].name, value: backendThresholds[4], color: sortedLevels[3].color });
+        } else if (sortedLevels.length === 3) {
+            result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[2], color: sortedLevels[1].color });
+            result.push({ name: sortedLevels[2].name, value: backendThresholds[4], color: sortedLevels[2].color });
+        } else if (sortedLevels.length === 2) {
+            result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[4], color: sortedLevels[1].color });
+        } else {
+            sortedLevels.forEach((level, i) => {
+                result.push({ name: level.name, value: backendThresholds[Math.min(i, 4)], color: level.color });
+            });
+        }
+
+        return result;
+    };
+
     return (
         <div className="border-2 border-slate-200 rounded-xl bg-gradient-to-br from-white to-slate-50 shadow-sm hover:shadow-md transition-shadow">
             <div
@@ -148,21 +214,19 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
 
                                     {/* Threshold display */}
                                     <div className="flex flex-wrap gap-2 mt-3 text-xs">
-                                        <span className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 font-semibold border border-red-200">
-                                            Below: {kr.thresholds.below}
-                                        </span>
-                                        <span className="px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 font-semibold border border-yellow-200">
-                                            Meets: {kr.thresholds.meets}
-                                        </span>
-                                        <span className="px-3 py-1.5 rounded-lg bg-green-50 text-green-700 font-semibold border border-green-200">
-                                            Good: {kr.thresholds.good}
-                                        </span>
-                                        <span className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
-                                            Very Good: {kr.thresholds.veryGood}
-                                        </span>
-                                        <span className="px-3 py-1.5 rounded-lg bg-teal-50 text-teal-700 font-semibold border border-teal-200">
-                                            Exceptional: {kr.thresholds.exceptional}
-                                        </span>
+                                        {getThresholdsForDisplay(kr).map((threshold) => (
+                                            <span
+                                                key={threshold.name}
+                                                className="px-3 py-1.5 rounded-lg font-semibold"
+                                                style={{
+                                                    backgroundColor: `${threshold.color}20`,
+                                                    color: threshold.color,
+                                                    border: `1px solid ${threshold.color}40`
+                                                }}
+                                            >
+                                                {threshold.name}: {threshold.value}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
 

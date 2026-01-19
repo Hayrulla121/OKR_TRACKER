@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { ScoreLevel } from '../types/okr';
 import { scoreLevelApi } from '../services/api';
+import { useLanguage } from '../i18n';
 
 interface ScoreLevelsManagerProps {
   onUpdate?: () => void;
 }
 
-// Predefined color palette for easy selection
 const COLOR_PALETTE = [
-  '#dc3545', '#e74c3c', '#c0392b', // Reds
-  '#f39c12', '#f1c40f', '#e67e22', // Oranges/Yellows
-  '#27ae60', '#2ecc71', '#1abc9c', // Greens
-  '#3498db', '#2980b9', '#9b59b6', // Blues/Purples
-  '#1e7b34', '#28a745', '#5cb85c', // More greens
-  '#6c757d', '#95a5a6', '#34495e', // Grays
+  '#dc3545', '#e74c3c', '#c0392b',
+  '#f39c12', '#f1c40f', '#e67e22',
+  '#27ae60', '#2ecc71', '#1abc9c',
+  '#3498db', '#2980b9', '#9b59b6',
+  '#1e7b34', '#28a745', '#5cb85c',
+  '#6c757d', '#95a5a6', '#34495e',
 ];
 
 const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => {
+  const { t } = useLanguage();
   const [levels, setLevels] = useState<ScoreLevel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,12 +33,11 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
   const fetchLevels = async () => {
     try {
       const response = await scoreLevelApi.getAll();
-      // Sort once on fetch, then maintain order until save
       const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
       setLevels(sorted);
       setError(null);
     } catch (err) {
-      setError('Failed to load score levels');
+      setError(t.failedToLoadScoreLevels);
       console.error(err);
     }
   };
@@ -49,7 +49,6 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
     setHasChanges(true);
   };
 
-  // Handle score value editing with text input to avoid focus loss
   const startEditingScore = (index: number, currentValue: number) => {
     setEditingScoreIndex(index);
     setTempScoreValue(currentValue.toString());
@@ -66,7 +65,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
 
   const handleAddLevel = () => {
     const newLevel: ScoreLevel = {
-      name: 'New Level',
+      name: t.newLevel,
       scoreValue: 4.0,
       color: '#6c757d',
       displayOrder: levels.length,
@@ -77,11 +76,10 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
 
   const handleRemoveLevel = (index: number) => {
     if (levels.length <= 2) {
-      alert('You must have at least 2 score levels');
+      alert(t.mustHaveAtLeast2Levels);
       return;
     }
     const updatedLevels = levels.filter((_, i) => i !== index);
-    // Reorder remaining levels
     updatedLevels.forEach((level, i) => {
       level.displayOrder = i;
     });
@@ -93,9 +91,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
     setLoading(true);
     setError(null);
     try {
-      // Sort by score value before saving
       const sortedLevels = [...levels].sort((a, b) => a.scoreValue - b.scoreValue);
-      // Update display orders
       sortedLevels.forEach((level, i) => {
         level.displayOrder = i;
       });
@@ -104,9 +100,9 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
       setLevels(sortedLevels);
       setHasChanges(false);
       if (onUpdate) onUpdate();
-      alert('Score levels updated successfully!');
+      alert(t.scoreLevelsUpdated);
     } catch (err) {
-      setError('Failed to update score levels');
+      setError(t.failedToUpdateScoreLevels);
       console.error(err);
     } finally {
       setLoading(false);
@@ -114,7 +110,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
   };
 
   const handleReset = async () => {
-    if (!window.confirm('Reset to default score levels? This will discard all customizations.')) {
+    if (!window.confirm(t.resetConfirmation)) {
       return;
     }
 
@@ -124,9 +120,9 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
       await fetchLevels();
       setHasChanges(false);
       if (onUpdate) onUpdate();
-      alert('Score levels reset to defaults');
+      alert(t.scoreLevelsReset);
     } catch (err) {
-      setError('Failed to reset score levels');
+      setError(t.failedToResetScoreLevels);
       console.error(err);
     } finally {
       setLoading(false);
@@ -136,9 +132,9 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-slate-800 mb-2">Score Level Configuration</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-2">{t.scoreLevelConfiguration}</h3>
         <p className="text-sm text-slate-600">
-          Configure the global score levels. Changes are sorted by score value when saved.
+          {t.configureGlobalScoreLevels}
         </p>
       </div>
 
@@ -153,7 +149,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
           <div key={level.id || `level-${index}`} className="bg-white p-4 rounded-lg border-2 border-slate-200 shadow-sm">
             <div className="grid grid-cols-12 gap-3 items-center">
               <div className="col-span-3">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Level Name</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t.levelName}</label>
                 <input
                   type="text"
                   value={level.name}
@@ -163,7 +159,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
               </div>
 
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Score Value</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t.scoreValue}</label>
                 {editingScoreIndex === index ? (
                   <input
                     type="text"
@@ -191,7 +187,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
               </div>
 
               <div className="col-span-3 relative">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Color (click to pick)</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t.colorClickToPick}</label>
                 <button
                   onClick={() => setShowColorPicker(showColorPicker === index ? null : index)}
                   className="w-full h-10 rounded-lg border-2 border-slate-300 cursor-pointer hover:border-amber-400 transition-colors shadow-sm flex items-center justify-between px-3"
@@ -202,10 +198,9 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {/* Color Palette Dropdown */}
                 {showColorPicker === index && (
                   <div className="absolute top-full left-0 mt-1 p-3 bg-white rounded-xl shadow-2xl border border-slate-200 z-20 w-64">
-                    <p className="text-xs font-semibold text-slate-500 mb-2">Choose a color:</p>
+                    <p className="text-xs font-semibold text-slate-500 mb-2">{t.chooseAColor}</p>
                     <div className="grid grid-cols-6 gap-2 mb-3">
                       {COLOR_PALETTE.map((color) => (
                         <button
@@ -223,7 +218,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                       ))}
                     </div>
                     <div className="border-t border-slate-200 pt-2">
-                      <p className="text-xs font-semibold text-slate-500 mb-1">Custom color:</p>
+                      <p className="text-xs font-semibold text-slate-500 mb-1">{t.customColor}</p>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -246,14 +241,14 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                       onClick={() => setShowColorPicker(null)}
                       className="mt-2 w-full py-1 text-xs text-slate-500 hover:text-slate-700"
                     >
-                      Close
+                      {t.close}
                     </button>
                   </div>
                 )}
               </div>
 
               <div className="col-span-3">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Preview</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{t.preview}</label>
                 <div
                   className="w-full px-4 py-2 rounded-lg text-white font-bold text-center text-sm"
                   style={{ backgroundColor: level.color }}
@@ -266,7 +261,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                 <button
                   onClick={() => handleRemoveLevel(index)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                  title="Remove level"
+                  title={t.removeLevel}
                   disabled={levels.length <= 2}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,7 +282,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Add Level
+          {t.addLevel}
         </button>
 
         <button
@@ -295,7 +290,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
           disabled={!hasChanges || loading}
           className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? t.saving : t.saveChanges}
         </button>
 
         <button
@@ -303,12 +298,12 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
           disabled={loading}
           className="px-4 py-2 bg-slate-500 text-white rounded-lg hover:bg-slate-600 font-semibold text-sm transition-colors disabled:opacity-50"
         >
-          Reset to Defaults
+          {t.resetToDefaults}
         </button>
 
         {hasChanges && (
           <span className="text-sm text-amber-600 font-semibold">
-            * You have unsaved changes
+            {t.unsavedChanges}
           </span>
         )}
       </div>

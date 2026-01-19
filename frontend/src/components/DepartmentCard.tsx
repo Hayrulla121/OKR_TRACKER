@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Department, Objective, KeyResult } from '../types/okr';
 import { keyResultApi } from '../services/api';
 import Speedometer from './Speedometer';
+import { useLanguage } from '../i18n';
 
 interface DepartmentCardProps {
     department: Department;
@@ -10,25 +11,16 @@ interface DepartmentCardProps {
 }
 
 const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, onUpdate }) => {
+    const { t } = useLanguage();
     const [expanded, setExpanded] = useState(true);
-
-    // Local state to track input values for each key result
     const [localValues, setLocalValues] = useState<Record<string, string>>({});
-
-    // Track which input currently has focus
     const focusedIdRef = useRef<string | null>(null);
-
-    // Track if we're currently saving (to show loading state)
     const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
-
-    // Debounce timers
     const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
-    // Sync local values with props when objective changes (but not for focused input)
     useEffect(() => {
         const newValues: Record<string, string> = {};
         objective.keyResults.forEach(kr => {
-            // Don't overwrite the value if this input is currently focused
             if (focusedIdRef.current === kr.id) {
                 newValues[kr.id] = localValues[kr.id] ?? kr.actualValue ?? '';
             } else {
@@ -36,9 +28,8 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
             }
         });
         setLocalValues(newValues);
-    }, [objective.keyResults]); // Intentionally not including localValues to avoid loops
+    }, [objective.keyResults]);
 
-    // Cleanup timers on unmount
     useEffect(() => {
         return () => {
             Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
@@ -50,7 +41,6 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
         try {
             await keyResultApi.updateActualValue(krId, value);
             if (!skipRefresh) {
-                // Clear focus ref before refresh so new values are accepted
                 if (focusedIdRef.current === krId) {
                     focusedIdRef.current = null;
                 }
@@ -68,64 +58,48 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
     }, [onUpdate]);
 
     const handleActualValueChange = (kr: KeyResult, value: string) => {
-        // Update local state immediately for responsive UI
         setLocalValues(prev => ({
             ...prev,
             [kr.id]: value
         }));
 
-        // Clear existing timer for this key result
         if (debounceTimers.current[kr.id]) {
             clearTimeout(debounceTimers.current[kr.id]);
         }
 
-        // Set new debounce timer - save without refresh while typing
         debounceTimers.current[kr.id] = setTimeout(() => {
-            saveValue(kr.id, value, true); // skipRefresh = true while typing
+            saveValue(kr.id, value, true);
         }, 1000);
     };
 
-    // Handle focus
     const handleFocus = (krId: string) => {
         focusedIdRef.current = krId;
     };
 
-    // Handle blur - save and refresh
     const handleBlur = (kr: KeyResult) => {
-        // Clear any pending debounce timer
         if (debounceTimers.current[kr.id]) {
             clearTimeout(debounceTimers.current[kr.id]);
             delete debounceTimers.current[kr.id];
         }
 
         const value = localValues[kr.id] ?? kr.actualValue ?? '';
-
-        // Clear focus ref
         focusedIdRef.current = null;
-
-        // Save and refresh to get updated scores
         saveValue(kr.id, value, false);
     };
 
-    // Refresh button handler - just triggers a refresh
     const handleRefresh = () => {
-        // Clear all pending debounce timers
         Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
         debounceTimers.current = {};
-
-        // Clear focus ref
         focusedIdRef.current = null;
-
-        // Trigger refresh
         onUpdate();
     };
 
     const getScoreLevelLabel = (score: number): string => {
-        if (score >= 5) return 'Exceptional';
-        if (score >= 4.75) return 'Very Good';
-        if (score >= 4.5) return 'Good';
-        if (score >= 4.25) return 'Meets';
-        return 'Below';
+        if (score >= 5) return t.exceptional;
+        if (score >= 4.75) return t.veryGood;
+        if (score >= 4.5) return t.good;
+        if (score >= 4.25) return t.meets;
+        return t.below;
     };
 
     const getScoreLevelColor = (score: number): string => {
@@ -134,6 +108,14 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
         if (score >= 4.5) return '#5cb85c';
         if (score >= 4.25) return '#f0ad4e';
         return '#d9534f';
+    };
+
+    const getMetricTypeLabel = (metricType: string): string => {
+        switch (metricType) {
+            case 'HIGHER_BETTER': return t.higherIsBetter;
+            case 'LOWER_BETTER': return t.lowerIsBetter;
+            default: return t.qualitative;
+        }
     };
 
     return (
@@ -148,17 +130,17 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                         <div className="flex items-center gap-2">
                             <h3 className="text-base font-bold text-white">{objective.name}</h3>
                             <span className="bg-white/30 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full font-semibold">
-                                Weight: {objective.weight}%
+                                {t.weight}: {objective.weight}%
                             </span>
                         </div>
                         <p className="text-amber-100 text-xs mt-0.5">
-                            {objective.keyResults.length} Key Result{objective.keyResults.length !== 1 ? 's' : ''}
+                            {objective.keyResults.length} {t.keyResult}{objective.keyResults.length !== 1 ? 's' : ''}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
                         {objective.score && (
                             <div className="bg-white/20 rounded-lg px-3 py-1.5 backdrop-blur-sm">
-                                <div className="text-xs text-amber-100">Avg</div>
+                                <div className="text-xs text-amber-100">{t.avg}</div>
                                 <div className="text-lg font-bold text-white">
                                     {objective.score.score.toFixed(2)}
                                 </div>
@@ -179,7 +161,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                         </div>
                         <div className="lg:col-span-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-sm font-bold text-slate-800">Score Assessment</h4>
+                                <h4 className="text-sm font-bold text-slate-800">{t.scoreAssessment}</h4>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -190,12 +172,12 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                     </svg>
-                                    Refresh Scores
+                                    {t.refreshScores}
                                 </button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <div className="text-xs text-slate-600">Score Level</div>
+                                    <div className="text-xs text-slate-600">{t.scoreLevel}</div>
                                     <div
                                         className="text-lg font-bold mt-0.5"
                                         style={{ color: getScoreLevelColor(objective.score?.score || 3) }}
@@ -204,7 +186,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-slate-600">Average Score</div>
+                                    <div className="text-xs text-slate-600">{t.averageScore}</div>
                                     <div
                                         className="text-lg font-bold mt-0.5"
                                         style={{ color: objective.score?.color || '#666' }}
@@ -219,7 +201,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                     {/* Results Breakdown Table */}
                     <div className="bg-white rounded-lg border-2 border-slate-200 overflow-hidden">
                         <div className="bg-gradient-to-r from-slate-100 to-slate-50 px-3 py-2 border-b-2 border-slate-200">
-                            <h4 className="text-sm font-bold text-slate-800">Results Breakdown</h4>
+                            <h4 className="text-sm font-bold text-slate-800">{t.resultsBreakdown}</h4>
                         </div>
 
                         {/* Table */}
@@ -228,24 +210,24 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                 <thead>
                                 <tr className="bg-gradient-to-r from-amber-600 to-orange-600 text-white">
                                     <th className="px-3 py-2 text-left font-bold">KR</th>
-                                    <th className="px-3 py-2 text-left font-bold">Key Result</th>
-                                    <th className="px-3 py-2 text-center font-bold">Actual</th>
+                                    <th className="px-3 py-2 text-left font-bold">{t.keyResult}</th>
+                                    <th className="px-3 py-2 text-center font-bold">{t.actual}</th>
                                     <th className="px-3 py-2 text-center font-bold bg-red-600">
-                                        Below<br/>3.00
+                                        {t.below}<br/>3.00
                                     </th>
                                     <th className="px-3 py-2 text-center font-bold bg-orange-500">
-                                        Meets<br/>4.25
+                                        {t.meets}<br/>4.25
                                     </th>
                                     <th className="px-3 py-2 text-center font-bold bg-lime-500">
-                                        Good<br/>4.50
+                                        {t.good}<br/>4.50
                                     </th>
                                     <th className="px-3 py-2 text-center font-bold bg-green-600">
-                                        Very Good<br/>4.75
+                                        {t.veryGood}<br/>4.75
                                     </th>
                                     <th className="px-3 py-2 text-center font-bold bg-emerald-700">
-                                        Exceptional<br/>5.00
+                                        {t.exceptional}<br/>5.00
                                     </th>
-                                    <th className="px-3 py-2 text-center font-bold">Score</th>
+                                    <th className="px-3 py-2 text-center font-bold">{t.score}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -263,8 +245,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                                 <div className="text-xs text-slate-500 mt-0.5">{kr.description}</div>
                                             )}
                                             <div className="text-xs text-slate-400 mt-0.5">
-                                                {kr.metricType === 'HIGHER_BETTER' ? 'Higher is Better' :
-                                                    kr.metricType === 'LOWER_BETTER' ? 'Lower is Better' : 'Qualitative'}
+                                                {getMetricTypeLabel(kr.metricType)}
                                             </div>
                                         </td>
                                         <td className="px-3 py-3 text-center">
@@ -337,7 +318,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                 {/* Overall Calculation Row */}
                                 <tr className="bg-gradient-to-r from-yellow-100 to-amber-100 border-t-4 border-amber-400">
                                     <td colSpan={8} className="px-3 py-3 font-bold text-slate-800 text-right">
-                                        Average Score (Sum of all KR scores / {objective.keyResults.length}) =
+                                        {t.averageScore} (Sum of all KR scores / {objective.keyResults.length}) =
                                     </td>
                                     <td className="px-3 py-3 text-center">
                                         <div

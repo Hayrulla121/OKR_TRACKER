@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Department, Objective, MetricType, ScoreLevel } from '../types/okr';
 import { departmentApi, objectiveApi, keyResultApi, scoreLevelApi } from '../services/api';
 import ScoreLevelsManager from './ScoreLevelsManager';
+import { useLanguage } from '../i18n';
 
 interface SettingsModalProps {
   departments: Department[];
@@ -12,6 +13,7 @@ interface SettingsModalProps {
 type Tab = 'departments' | 'objectives' | 'keyResults' | 'scoreLevels';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onUpdate }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<Tab>('departments');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
         setDynamicThresholds(initialThresholds);
       } catch (err) {
         console.error('Failed to fetch score levels:', err);
-        // Fallback to defaults - but this shouldn't happen if API is working
+        // Fallback to defaults
         setScoreLevels([
           { name: 'Below', scoreValue: 3.0, color: '#dc3545', displayOrder: 0 },
           { name: 'Meets', scoreValue: 4.25, color: '#ffc107', displayOrder: 1 },
@@ -75,7 +77,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
       setNewDeptName('');
       onUpdate();
     } catch (err) {
-      setError('Failed to create department');
+      setError(t.failedToCreateDepartment);
       console.error(err);
     } finally {
       setLoading(false);
@@ -83,14 +85,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   };
 
   const handleDeleteDepartment = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this department?')) return;
+    if (!window.confirm(t.confirmDeleteDepartment)) return;
 
     setLoading(true);
     try {
       await departmentApi.delete(id);
       onUpdate();
     } catch (err) {
-      setError('Failed to delete department');
+      setError(t.failedToDeleteDepartment);
       console.error(err);
     } finally {
       setLoading(false);
@@ -112,7 +114,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
       setNewObjWeight('100');
       onUpdate();
     } catch (err) {
-      setError('Failed to create objective');
+      setError(t.failedToCreateObjective);
       console.error(err);
     } finally {
       setLoading(false);
@@ -120,14 +122,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   };
 
   const handleDeleteObjective = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this objective?')) return;
+    if (!window.confirm(t.confirmDeleteObjective)) return;
 
     setLoading(true);
     try {
       await objectiveApi.delete(id);
       onUpdate();
     } catch (err) {
-      setError('Failed to delete objective');
+      setError(t.failedToDeleteObjective);
       console.error(err);
     } finally {
       setLoading(false);
@@ -139,8 +141,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
     const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
     const thresholdValues = sortedLevels.map(level => parseFloat(dynamicThresholds[level.name] || '0'));
 
-    // Backend expects exactly 5 thresholds: below, meets, good, veryGood, exceptional
-    // Map dynamic thresholds to these columns based on count
     if (sortedLevels.length === 5) {
       return {
         below: thresholdValues[0],
@@ -154,15 +154,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
         below: thresholdValues[0],
         meets: thresholdValues[1],
         good: thresholdValues[2],
-        veryGood: thresholdValues[2], // duplicate
+        veryGood: thresholdValues[2],
         exceptional: thresholdValues[3]
       };
     } else if (sortedLevels.length === 3) {
       return {
         below: thresholdValues[0],
-        meets: thresholdValues[0], // duplicate
+        meets: thresholdValues[0],
         good: thresholdValues[1],
-        veryGood: thresholdValues[1], // duplicate
+        veryGood: thresholdValues[1],
         exceptional: thresholdValues[2]
       };
     } else if (sortedLevels.length === 2) {
@@ -174,7 +174,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
         exceptional: thresholdValues[1]
       };
     } else {
-      // Default fallback
       return {
         below: 0,
         meets: 25,
@@ -214,7 +213,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
       setDynamicThresholds(initialThresholds);
       onUpdate();
     } catch (err) {
-      setError('Failed to create key result');
+      setError(t.failedToCreateKeyResult);
       console.error(err);
     } finally {
       setLoading(false);
@@ -222,14 +221,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   };
 
   const handleDeleteKeyResult = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this key result?')) return;
+    if (!window.confirm(t.confirmDeleteKeyResult)) return;
 
     setLoading(true);
     try {
       await keyResultApi.delete(id);
       onUpdate();
     } catch (err) {
-      setError('Failed to delete key result');
+      setError(t.failedToDeleteKeyResult);
       console.error(err);
     } finally {
       setLoading(false);
@@ -240,14 +239,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
     d.objectives.map(obj => ({ ...obj, departmentName: d.name }))
   );
 
+  const getMetricTypeLabel = (type: MetricType) => {
+    switch (type) {
+      case 'HIGHER_BETTER': return t.higherIsBetter;
+      case 'LOWER_BETTER': return t.lowerIsBetter;
+      case 'QUALITATIVE': return t.qualitative + ' (A-E)';
+      default: return type;
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-6 rounded-t-2xl flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Settings</h2>
-            <p className="text-amber-100 text-sm mt-1">Manage departments, objectives, and key results</p>
+            <h2 className="text-2xl font-bold">{t.settings}</h2>
+            <p className="text-amber-100 text-sm mt-1">{t.manageDepartmentsObjectivesKRs}</p>
           </div>
           <button
             onClick={onClose}
@@ -270,7 +278,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Departments
+              {t.departmentsLabel}
             </button>
             <button
               onClick={() => setActiveTab('objectives')}
@@ -280,7 +288,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Objectives
+              {t.objectivesLabel}
             </button>
             <button
               onClick={() => setActiveTab('keyResults')}
@@ -290,7 +298,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Key Results
+              {t.keyResultsLabel}
             </button>
             <button
               onClick={() => setActiveTab('scoreLevels')}
@@ -300,7 +308,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Score Levels
+              {t.scoreLevel}
             </button>
           </div>
         </div>
@@ -317,13 +325,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
           {activeTab === 'departments' && (
             <div className="space-y-6">
               <form onSubmit={handleCreateDepartment} className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Create New Department</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t.createNewDepartment}</h3>
                 <div className="flex gap-3">
                   <input
                     type="text"
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
-                    placeholder="Department name"
+                    placeholder={t.departmentName}
                     className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     required
                   />
@@ -332,13 +340,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     disabled={loading}
                     className="px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:bg-slate-400 transition-colors"
                   >
-                    Create
+                    {t.create}
                   </button>
                 </div>
               </form>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Existing Departments</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t.existingDepartments}</h3>
                 <div className="space-y-2">
                   {departments.map((dept) => (
                     <div
@@ -348,7 +356,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       <div>
                         <h4 className="font-semibold text-slate-800">{dept.name}</h4>
                         <p className="text-sm text-slate-500">
-                          {dept.objectives.length} objective{dept.objectives.length !== 1 ? 's' : ''}
+                          {dept.objectives.length} {t.objective}{dept.objectives.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <button
@@ -356,12 +364,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                         disabled={loading}
                         className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 disabled:bg-slate-400 transition-colors"
                       >
-                        Delete
+                        {t.delete}
                       </button>
                     </div>
                   ))}
                   {departments.length === 0 && (
-                    <p className="text-center text-slate-400 py-8">No departments yet</p>
+                    <p className="text-center text-slate-400 py-8">{t.noDepartments}</p>
                   )}
                 </div>
               </div>
@@ -372,7 +380,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
           {activeTab === 'objectives' && (
             <div className="space-y-6">
               <form onSubmit={handleCreateObjective} className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Create New Objective</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t.createNewObjective}</h3>
                 <div className="space-y-3">
                   <select
                     value={selectedDeptId}
@@ -380,7 +388,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     required
                   >
-                    <option value="">Select department</option>
+                    <option value="">{t.selectDepartment}</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
@@ -389,7 +397,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     type="text"
                     value={newObjName}
                     onChange={(e) => setNewObjName(e.target.value)}
-                    placeholder="Objective name"
+                    placeholder={t.objectiveName}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     required
                   />
@@ -398,7 +406,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       type="number"
                       value={newObjWeight}
                       onChange={(e) => setNewObjWeight(e.target.value)}
-                      placeholder="Weight (%)"
+                      placeholder={t.weightPercent}
                       min="0"
                       max="100"
                       className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
@@ -409,14 +417,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       disabled={loading}
                       className="px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:bg-slate-400 transition-colors"
                     >
-                      Create
+                      {t.create}
                     </button>
                   </div>
                 </div>
               </form>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Existing Objectives</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t.existingObjectives}</h3>
                 <div className="space-y-2">
                   {allObjectives.map((obj) => (
                     <div
@@ -426,7 +434,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       <div>
                         <h4 className="font-semibold text-slate-800">{obj.name}</h4>
                         <p className="text-sm text-slate-500">
-                          {obj.departmentName} • Weight: {obj.weight}% • {obj.keyResults.length} key result{obj.keyResults.length !== 1 ? 's' : ''}
+                          {obj.departmentName} • {t.weight}: {obj.weight}% • {obj.keyResults.length} {t.keyResult}{obj.keyResults.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <button
@@ -434,12 +442,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                         disabled={loading}
                         className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 disabled:bg-slate-400 transition-colors"
                       >
-                        Delete
+                        {t.delete}
                       </button>
                     </div>
                   ))}
                   {allObjectives.length === 0 && (
-                    <p className="text-center text-slate-400 py-8">No objectives yet</p>
+                    <p className="text-center text-slate-400 py-8">{t.noObjectivesYetText}</p>
                   )}
                 </div>
               </div>
@@ -450,7 +458,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
           {activeTab === 'keyResults' && (
             <div className="space-y-6">
               <form onSubmit={handleCreateKeyResult} className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Create New Key Result</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t.createNewKeyResult}</h3>
                 <div className="space-y-3">
                   <select
                     value={selectedObjId}
@@ -458,7 +466,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     required
                   >
-                    <option value="">Select objective</option>
+                    <option value="">{t.selectObjective}</option>
                     {allObjectives.map((obj) => (
                       <option key={obj.id} value={obj.id}>{obj.name} ({obj.departmentName})</option>
                     ))}
@@ -467,14 +475,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     type="text"
                     value={newKrName}
                     onChange={(e) => setNewKrName(e.target.value)}
-                    placeholder="Key result name"
+                    placeholder={t.keyResultName}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     required
                   />
                   <textarea
                     value={newKrDescription}
                     onChange={(e) => setNewKrDescription(e.target.value)}
-                    placeholder="Description (optional)"
+                    placeholder={t.descriptionOptional}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     rows={2}
                   />
@@ -484,16 +492,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       onChange={(e) => setNewKrMetricType(e.target.value as MetricType)}
                       className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     >
-                      <option value="HIGHER_BETTER">Higher is Better</option>
-                      <option value="LOWER_BETTER">Lower is Better</option>
-                      <option value="QUALITATIVE">Qualitative (A-E)</option>
+                      <option value="HIGHER_BETTER">{t.higherIsBetter}</option>
+                      <option value="LOWER_BETTER">{t.lowerIsBetter}</option>
+                      <option value="QUALITATIVE">{t.qualitative} (A-E)</option>
                     </select>
                     {newKrMetricType !== 'QUALITATIVE' && (
                       <input
                         type="text"
                         value={newKrUnit}
                         onChange={(e) => setNewKrUnit(e.target.value)}
-                        placeholder="Unit (e.g., %, $, users)"
+                        placeholder={t.unitExample}
                         className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                       />
                     )}
@@ -502,7 +510,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     type="number"
                     value={newKrWeight}
                     onChange={(e) => setNewKrWeight(e.target.value)}
-                    placeholder="Weight (%)"
+                    placeholder={t.weightPercent}
                     min="0"
                     max="100"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
@@ -512,7 +520,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   {newKrMetricType !== 'QUALITATIVE' && (
                     <div className="bg-white p-4 rounded-lg border border-slate-200">
                       <h4 className="font-semibold text-slate-700 mb-3">
-                        Threshold Values ({scoreLevels.length} levels)
+                        {t.thresholdValues} ({scoreLevels.length} {t.levels})
                       </h4>
                       <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${scoreLevels.length}, minmax(0, 1fr))` }}>
                         {[...scoreLevels]
@@ -544,7 +552,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                           ))}
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
-                        Enter the actual metric values that correspond to each score level
+                        {t.enterActualMetricValues}
                       </p>
                     </div>
                   )}
@@ -554,13 +562,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     disabled={loading}
                     className="w-full px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:bg-slate-400 transition-colors"
                   >
-                    Create Key Result
+                    {t.createKeyResult}
                   </button>
                 </div>
               </form>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Existing Key Results</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">{t.existingKeyResults}</h3>
                 <div className="space-y-2">
                   {allObjectives.flatMap(obj =>
                     obj.keyResults.map(kr => (
@@ -571,7 +579,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                         <div>
                           <h4 className="font-semibold text-slate-800">{kr.name}</h4>
                           <p className="text-sm text-slate-500">
-                            {obj.name} ({obj.departmentName}) • {kr.metricType} • Weight: {kr.weight}%
+                            {obj.name} ({obj.departmentName}) • {getMetricTypeLabel(kr.metricType)} • {t.weight}: {kr.weight}%
                           </p>
                         </div>
                         <button
@@ -579,13 +587,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                           disabled={loading}
                           className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 disabled:bg-slate-400 transition-colors"
                         >
-                          Delete
+                          {t.delete}
                         </button>
                       </div>
                     ))
                   )}
                   {allObjectives.flatMap(obj => obj.keyResults).length === 0 && (
-                    <p className="text-center text-slate-400 py-8">No key results yet</p>
+                    <p className="text-center text-slate-400 py-8">{t.noKeyResultsYet}</p>
                   )}
                 </div>
               </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Department } from '../types/okr';
 import Speedometer from './Speedometer';
 import DepartmentCard from './DepartmentCard';
+import { useLanguage } from '../i18n';
 
 interface DepartmentModalProps {
     department: Department;
@@ -10,19 +11,15 @@ interface DepartmentModalProps {
 }
 
 const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, onUpdate }) => {
+    const { t } = useLanguage();
     const defaultScore = { score: 3, level: 'below' as const, color: '#d9534f', percentage: 0 };
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement;
-
-            // Don't handle ANY keyboard events if user is typing in an input/select/textarea
             if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') {
-                // Let the input handle its own events
                 return;
             }
-
-            // Only close on Escape when NOT in an input field
             if (e.key === 'Escape') {
                 onClose();
             }
@@ -33,7 +30,6 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
     }, [onClose]);
 
     const handleBackdropClick = (e: React.MouseEvent) => {
-        // Only close if clicking directly on the backdrop
         if (e.target === e.currentTarget) {
             onClose();
         }
@@ -51,8 +47,8 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                 {/* Modal Header */}
                 <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold">{department.name} Department</h2>
-                        <p className="text-amber-100 text-xs mt-0.5">Performance Details</p>
+                        <h2 className="text-xl font-bold">{department.name}</h2>
+                        <p className="text-amber-100 text-xs mt-0.5">{t.performanceDetails}</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -69,28 +65,28 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                     {/* Speedometer and Summary */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                         <div className="lg:col-span-1 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
-                            <h3 className="text-base font-bold text-slate-800 mb-3 text-center">Department Score</h3>
+                            <h3 className="text-base font-bold text-slate-800 mb-3 text-center">{t.departmentScore}</h3>
                             <Speedometer score={department.score || defaultScore} size="sm" />
                         </div>
 
                         <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
-                            <h3 className="text-base font-bold text-slate-800 mb-3">Score Summary</h3>
+                            <h3 className="text-base font-bold text-slate-800 mb-3">{t.scoreSummary}</h3>
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-100 rounded-lg">
                                     <div className="text-2xl font-bold text-amber-600">{department.objectives.length}</div>
-                                    <div className="text-xs text-slate-600 mt-0.5">Objectives</div>
+                                    <div className="text-xs text-slate-600 mt-0.5">{t.objectivesLabel}</div>
                                 </div>
                                 <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
                                     <div className="text-2xl font-bold text-purple-600">
                                         {department.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)}
                                     </div>
-                                    <div className="text-xs text-slate-600 mt-0.5">Key Results</div>
+                                    <div className="text-xs text-slate-600 mt-0.5">{t.keyResultsLabel}</div>
                                 </div>
                                 <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
                                     <div className="text-2xl font-bold" style={{ color: department.score?.color || '#666' }}>
                                         {department.score?.score.toFixed(2) || '0.00'}
                                     </div>
-                                    <div className="text-xs text-slate-600 mt-0.5">Avg Score</div>
+                                    <div className="text-xs text-slate-600 mt-0.5">{t.avgScore}</div>
                                 </div>
                             </div>
                         </div>
@@ -101,8 +97,8 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                         {department.objectives.length === 0 ? (
                             <div className="bg-white rounded-xl shadow-lg p-12 border border-slate-200 text-center">
                                 <div className="text-5xl mb-3">🎯</div>
-                                <h3 className="text-lg font-semibold text-slate-600 mb-1.5">No Objectives Yet</h3>
-                                <p className="text-slate-400 text-sm">Add objectives to this department from settings!</p>
+                                <h3 className="text-lg font-semibold text-slate-600 mb-1.5">{t.noObjectivesYet}</h3>
+                                <p className="text-slate-400 text-sm">{t.addObjectivesFromSettings}</p>
                             </div>
                         ) : (
                             department.objectives.map((objective) => (

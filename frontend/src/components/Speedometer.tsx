@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScoreResult, ScoreLevel } from '../types/okr';
 import { scoreLevelApi } from '../services/api';
+import { useLanguage } from '../i18n';
 
 interface SpeedometerProps {
     score: ScoreResult;
@@ -17,18 +18,17 @@ const Speedometer: React.FC<SpeedometerProps> = ({
     glow = false,
     compact = false
 }) => {
+    const { t } = useLanguage();
     const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
 
     useEffect(() => {
         const fetchScoreLevels = async () => {
             try {
                 const response = await scoreLevelApi.getAll();
-                // Sort by scoreValue to ensure proper ordering
                 const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
                 setScoreLevels(sorted);
             } catch (error) {
                 console.error('Failed to load score levels for speedometer:', error);
-                // Fallback to defaults if API fails
                 setScoreLevels([
                     { name: 'Below', scoreValue: 3.0, color: '#dc3545', displayOrder: 0 },
                     { name: 'Meets', scoreValue: 4.25, color: '#ffc107', displayOrder: 1 },
@@ -40,6 +40,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({
         };
         fetchScoreLevels();
     }, []);
+
     const sizes = {
         sm: { width: 220, height: 150, radius: 65, strokeWidth: 16, fontSize: 20, titleSize: 'text-sm', labelFontSize: 10 },
         md: { width: 280, height: 190, radius: 85, strokeWidth: 20, fontSize: 26, titleSize: 'text-base', labelFontSize: 12 },
@@ -51,17 +52,14 @@ const Speedometer: React.FC<SpeedometerProps> = ({
     const centerX = width / 2;
     const centerY = height - 20;
 
-    // Get min and max scores from dynamic levels
     const minScore = scoreLevels.length > 0 ? scoreLevels[0].scoreValue : 3.0;
     const maxScore = scoreLevels.length > 0 ? scoreLevels[scoreLevels.length - 1].scoreValue : 5.0;
     const scoreRange = maxScore - minScore;
 
-    // Convert score to percentage and angle
     const normalizedScore = Math.max(minScore, Math.min(maxScore, score.score));
     const percentage = ((normalizedScore - minScore) / scoreRange) * 100;
     const angle = 180 - (percentage / 100) * 180;
 
-    // Arc paths for different score ranges
     const createArcPath = (startAngle: number, endAngle: number, r: number) => {
         const start = (180 - startAngle) * (Math.PI / 180);
         const end = (180 - endAngle) * (Math.PI / 180);
@@ -76,7 +74,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
         return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
     };
 
-    // Create dynamic score ranges based on score levels
     const scoreRanges = scoreLevels.length > 1 ? scoreLevels.slice(0, -1).map((level, index) => {
         const nextLevel = scoreLevels[index + 1];
         const startPct = ((level.scoreValue - minScore) / scoreRange) * 100;
@@ -92,13 +89,11 @@ const Speedometer: React.FC<SpeedometerProps> = ({
         { start: 75, end: 100, color: '#28a745' },
     ];
 
-    // Needle position
     const needleAngle = (angle * Math.PI) / 180;
     const needleLength = radius - 10;
     const needleX = centerX + needleLength * Math.cos(needleAngle);
     const needleY = centerY - needleLength * Math.sin(needleAngle);
 
-    // Dynamic tick marks and labels from score levels
     const minorTicks = scoreLevels.length > 0
         ? scoreLevels.map(level => level.scoreValue)
         : [3.0, 3.5, 4.0, 4.5, 5.0];
@@ -116,29 +111,17 @@ const Speedometer: React.FC<SpeedometerProps> = ({
             { value: 5.0, label: '5.0' }
         ];
 
-    // Create dynamic level labels from fetched score levels
-    const levelLabelsEn: Record<string, string> = scoreLevels.length > 0
-        ? scoreLevels.reduce((acc, level) => {
-            // Map both the original name and snake_case version
-            const snakeCase = level.name.toLowerCase().replace(/\s+/g, '_');
-            acc[snakeCase] = level.name;
-            acc[level.name.toLowerCase()] = level.name;
-            return acc;
-        }, {} as Record<string, string>)
-        : {
-            below: 'Below',
-            meets: 'Meets',
-            good: 'Good',
-            very_good: 'Very Good',
-            exceptional: 'Exceptional',
-        };
-
-    // Get the display name for the current score level
     const getLevelDisplayName = () => {
         if (scoreLevels.length === 0) {
-            return levelLabelsEn[score.level] || score.level;
+            // Fallback to translated level names
+            switch (score.level) {
+                case 'exceptional': return t.exceptional;
+                case 'very_good': return t.veryGood;
+                case 'good': return t.good;
+                case 'meets': return t.meets;
+                default: return t.below;
+            }
         }
-        // Find the level that matches the current score
         for (let i = scoreLevels.length - 1; i >= 0; i--) {
             if (score.score >= scoreLevels[i].scoreValue) {
                 return scoreLevels[i].name;
@@ -147,14 +130,12 @@ const Speedometer: React.FC<SpeedometerProps> = ({
         return scoreLevels[0]?.name || score.level;
     };
 
-    // Glow style based on score color
     const glowStyle = glow ? {
         filter: `drop-shadow(0 0 20px ${score.color}) drop-shadow(0 0 40px ${score.color}40)`,
     } : {};
 
     return (
         <div className={`flex flex-col items-center w-full ${compact ? 'gap-1' : ''}`}>
-            {/* Title with icon - hidden in compact mode */}
             {!compact && (
                 <div className="flex items-center gap-2 mb-3">
                     <div className="rounded-full bg-red-100 flex items-center justify-center w-6 h-6">
@@ -163,15 +144,13 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         </svg>
                     </div>
                     <span className={`font-bold text-slate-800 ${titleSize}`}>
-                        Оценка
+                        {t.rating}
                     </span>
                 </div>
             )}
 
-            {/* Speedometer SVG */}
             <div className="relative" style={glowStyle}>
                 <svg width={width} height={height} className="overflow-visible">
-                    {/* Background arc segments */}
                     {scoreRanges.map((range, index) => (
                         <path
                             key={index}
@@ -183,9 +162,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         />
                     ))}
 
-
-
-                    {/* Tick marks - small inner ticks */}
                     {minorTicks.map((value) => {
                         const tickPct = ((value - minScore) / scoreRange) * 100;
                         const tickAngle = (180 - (tickPct / 100) * 180) * (Math.PI / 180);
@@ -205,7 +181,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         );
                     })}
 
-                    {/* Labels outside the arc */}
                     {labels.map((tick) => {
                         const tickPct = ((tick.value - minScore) / scoreRange) * 100;
                         const tickAngle = (180 - (tickPct / 100) * 180) * (Math.PI / 180);
@@ -226,7 +201,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         );
                     })}
 
-                    {/* Needle - thicker and darker */}
                     <line
                         x1={centerX}
                         y1={centerY}
@@ -237,7 +211,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         strokeLinecap="round"
                     />
 
-                    {/* Needle center circle */}
                     <circle
                         cx={centerX}
                         cy={centerY}
@@ -245,7 +218,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         fill="#000"
                     />
 
-                    {/* Score value below center */}
                     <text
                         x={centerX}
                         y={centerY + (size === 'lg' ? 50 : size === 'md' ? 40 : 32)}
@@ -259,7 +231,6 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                 </svg>
             </div>
 
-            {/* Status badge */}
             {showLabel && (
                 <div
                     className={`${compact ? 'mt-4 py-2 px-3' : 'mt-8 py-4 px-5'} w-full rounded-lg font-bold text-white shadow-lg`}

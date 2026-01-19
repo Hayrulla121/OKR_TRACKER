@@ -24,16 +24,16 @@ import java.util.List;
 public class ExcelExportService {
 
     private static final String[] HEADERS = {
-            "Department", "Objective", "Objective Weight", "Key Result",
-            "Type", "Actual", "Unit", "Below", "Meets", "Good",
-            "Very Good", "Exceptional", "Score", "Performance Level"
+            "Департамент", "Цель", "Вес цели", "Ключевой результат",
+            "Тип", "Факт", "Единица измерения", "Ниже нормы", "Норма", "Хорошо",
+            "Очень хорошо", "Исключительно", "Оценка", "Уровень исполнения"
     };
 
     public byte[] exportToExcel(List<DepartmentDTO> departments) {
         try (XSSFWorkbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-            XSSFSheet sheet = workbook.createSheet("OKR Export");
+            XSSFSheet sheet = workbook.createSheet("Экспорт OKR");
 
             // Create styles
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -137,7 +137,7 @@ public class ExcelExportService {
                             // Performance Level formula for qualitative
                             Cell levelCell = row.createCell(13);
                             String qualLevelFormula = String.format(
-                                "IF(F%d=\"A\",\"Exceptional\",IF(F%d=\"B\",\"Very Good\",IF(F%d=\"C\",\"Good\",IF(F%d=\"D\",\"Meets\",\"Below\"))))",
+                                "IF(F%d=\"A\",\"Исключительно\",IF(F%d=\"B\",\"Очень хорошо\",IF(F%d=\"C\",\"Хорошо\",IF(F%d=\"D\",\"Норма\",\"Ниже нормы\"))))",
                                 rowIdx + 1, rowIdx + 1, rowIdx + 1, rowIdx + 1
                             );
                             levelCell.setCellFormula(qualLevelFormula);
@@ -171,7 +171,7 @@ public class ExcelExportService {
                             // Performance Level formula
                             Cell levelCell = row.createCell(13);
                             String levelFormula = String.format(
-                                "IF(M%d>=5,\"Exceptional\",IF(M%d>=4.75,\"Very Good\",IF(M%d>=4.5,\"Good\",IF(M%d>=4.25,\"Meets\",\"Below\"))))",
+                                "IF(M%d>=5,\"Исключительно\",IF(M%d>=4.75,\"Очень хорошо\",IF(M%d>=4.5,\"Хорошо\",IF(M%d>=4.25,\"Норма\",\"Ниже нормы\"))))",
                                 rowIdx + 1, rowIdx + 1, rowIdx + 1, rowIdx + 1
                             );
                             levelCell.setCellFormula(levelFormula);
@@ -369,11 +369,11 @@ public class ExcelExportService {
         }
         switch (metricType) {
             case "HIGHER_BETTER":
-                return "Higher Better";
+                return "Чем выше, тем лучше";
             case "LOWER_BETTER":
-                return "Lower Better";
+                return "Чем ниже, тем лучше";
             case "QUALITATIVE":
-                return "Qualitative (A-E)";
+                return "Качественный (A-E)";
             default:
                 return metricType;
         }

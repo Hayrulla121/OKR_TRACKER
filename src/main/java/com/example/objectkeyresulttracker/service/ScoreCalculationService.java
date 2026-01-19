@@ -107,40 +107,43 @@ public class ScoreCalculationService {
         double score;
         String level;
 
+        int size = scoreLevels.size();
+        int lastIdx = size - 1;
+
         if (type == KeyResult.MetricType.HIGHER_BETTER) {
             // Find which threshold range the actual value falls into
             if (actual >= exceptional) {
-                score = scoreLevels.get(scoreLevels.size() - 1).getScoreValue();
-                level = scoreLevels.get(scoreLevels.size() - 1).getName().toLowerCase().replace(" ", "_");
+                score = scoreLevels.get(lastIdx).getScoreValue();
+                level = scoreLevels.get(lastIdx).getName().toLowerCase().replace(" ", "_");
             } else if (actual >= veryGood) {
                 // Between veryGood and exceptional
-                int idx = Math.min(scoreLevels.size() - 2, 3);
+                int idx = Math.max(0, Math.min(lastIdx - 1, 3));
                 double ratio = (actual - veryGood) / Math.max(exceptional - veryGood, 1);
                 double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(idx + 1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
             } else if (actual >= good) {
                 // Between good and veryGood
-                int idx = Math.min(scoreLevels.size() - 3, 2);
+                int idx = Math.max(0, Math.min(lastIdx - 2, 2));
                 double ratio = (actual - good) / Math.max(veryGood - good, 1);
                 double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(idx + 1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
             } else if (actual >= meets) {
                 // Between meets and good
-                int idx = Math.min(scoreLevels.size() - 4, 1);
+                int idx = Math.max(0, Math.min(lastIdx - 3, 1));
                 double ratio = (actual - meets) / Math.max(good - meets, 1);
                 double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(idx + 1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
             } else if (actual >= below) {
                 // Between below and meets
                 double ratio = (actual - below) / Math.max(meets - below, 1);
                 double startScore = scoreLevels.get(0).getScoreValue();
-                double endScore = scoreLevels.get(1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
             } else {
@@ -151,33 +154,33 @@ public class ScoreCalculationService {
         } else {
             // Lower is better - reverse the logic
             if (actual <= exceptional) {
-                score = scoreLevels.get(scoreLevels.size() - 1).getScoreValue();
-                level = scoreLevels.get(scoreLevels.size() - 1).getName().toLowerCase().replace(" ", "_");
+                score = scoreLevels.get(lastIdx).getScoreValue();
+                level = scoreLevels.get(lastIdx).getName().toLowerCase().replace(" ", "_");
             } else if (actual <= veryGood) {
-                int idx = Math.min(scoreLevels.size() - 2, 3);
+                int idx = Math.max(0, Math.min(lastIdx - 1, 3));
                 double ratio = 1 - (actual - exceptional) / Math.max(veryGood - exceptional, 1);
                 double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(idx + 1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
             } else if (actual <= good) {
-                int idx = Math.min(scoreLevels.size() - 3, 2);
+                int idx = Math.max(0, Math.min(lastIdx - 2, 2));
                 double ratio = 1 - (actual - veryGood) / Math.max(good - veryGood, 1);
                 double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(idx + 1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
             } else if (actual <= meets) {
-                int idx = Math.min(scoreLevels.size() - 4, 1);
+                int idx = Math.max(0, Math.min(lastIdx - 3, 1));
                 double ratio = 1 - (actual - good) / Math.max(meets - good, 1);
                 double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(idx + 1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
             } else if (actual <= below) {
                 double ratio = 1 - (actual - meets) / Math.max(below - meets, 1);
                 double startScore = scoreLevels.get(0).getScoreValue();
-                double endScore = scoreLevels.get(1).getScoreValue();
+                double endScore = scoreLevels.get(Math.min(1, lastIdx)).getScoreValue();
                 score = startScore + ratio * (endScore - startScore);
                 level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
             } else {

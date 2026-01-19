@@ -184,7 +184,7 @@ function App() {
                             className="text-xs font-bold ml-1"
                             style={{ color: selectedDepartment?.id === dept.id ? 'white' : dept.score.color }}
                         >
-                          {dept.score.score.toFixed(1)}
+                          {dept.score.score.toFixed(2)}
                         </span>
                     )}
                   </div>

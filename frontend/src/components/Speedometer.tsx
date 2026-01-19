@@ -101,7 +101,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({
     const labels = scoreLevels.length > 0
         ? scoreLevels.map(level => ({
             value: level.scoreValue,
-            label: level.scoreValue.toFixed(1)
+            label: level.scoreValue.toFixed(2)
         }))
         : [
             { value: 3.0, label: '3.0' },

@@ -113,7 +113,7 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-bold text-slate-800 text-lg">{objective.name}</h3>
-                        <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs px-3 py-1 rounded-full font-semibold">
+                        <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs px-3 py-1 rounded-full font-semibold">
                           {objective.weight}%
                         </span>
                     </div>
@@ -132,7 +132,7 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
                     {objective.keyResults.map((kr) => (
                         <div
                             key={kr.id}
-                            className="bg-white p-5 rounded-xl border-2 border-slate-100 shadow-sm hover:border-blue-200 transition-colors"
+                            className="bg-white p-5 rounded-xl border-2 border-slate-100 shadow-sm hover:border-amber-200 transition-colors"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
@@ -177,7 +177,7 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
                                                 onFocus={() => handleFocus(kr.id)}
                                                 onBlur={() => handleBlur(kr)}
                                                 disabled={savingIds.has(kr.id)}
-                                                className="border-2 border-slate-300 rounded-lg px-3 py-2 w-20 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                className="border-2 border-slate-300 rounded-lg px-3 py-2 w-20 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50"
                                             >
                                                 <option value="A">A</option>
                                                 <option value="B">B</option>
@@ -194,12 +194,12 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) =>
                                                     onFocus={() => handleFocus(kr.id)}
                                                     onBlur={() => handleBlur(kr)}
                                                     disabled={savingIds.has(kr.id)}
-                                                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-28 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                                                    className="border-2 border-slate-300 rounded-lg px-3 py-2 w-28 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50"
                                                     placeholder="0"
                                                 />
                                                 {savingIds.has(kr.id) && (
                                                     <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                        <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
                                                     </div>
                                                 )}
                                             </div>

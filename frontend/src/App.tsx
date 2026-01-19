@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Department, ScoreResult } from './types/okr';
-import { departmentApi, demoApi } from './services/api';
+import { Department, ScoreResult, ScoreLevel } from './types/okr';
+import { departmentApi, demoApi, scoreLevelApi } from './services/api';
 import Speedometer from './components/Speedometer';
 import DepartmentCard from './components/DepartmentCard';
 import SettingsModal from './components/SettingsModal';
@@ -15,6 +15,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
 
   const fetchDepartments = async () => {
     try {
@@ -78,34 +79,77 @@ function App() {
     }
   };
 
-  useEffect(() => {
+  const fetchScoreLevels = async () => {
+    try {
+      const response = await scoreLevelApi.getAll();
+      const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
+      setScoreLevels(sorted);
+    } catch (err) {
+      console.error('Failed to fetch score levels:', err);
+    }
+  };
+
+  // Combined refresh function to update all data
+  const refreshAllData = () => {
     fetchDepartments();
+    fetchScoreLevels();
+  };
+
+  useEffect(() => {
+    refreshAllData();
   }, []);
 
-  const defaultScore: ScoreResult = { score: 3, level: 'below', color: '#d9534f', percentage: 0 };
-
-  // Calculate overall score
+  // Calculate overall score using dynamic score levels
   const overallScore = React.useMemo((): ScoreResult => {
     const scores = departments
         .filter(d => d.score && d.score.score > 0)
         .map(d => d.score!.score);
 
+    // Default values
+    const defaultColor = '#d9534f';
+    const defaultLevel = 'below';
+
     if (scores.length === 0) {
-      return defaultScore;
+      return { score: 3, level: defaultLevel, color: defaultColor, percentage: 0 };
     }
 
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-    const level: ScoreResult['level'] = avg >= 5 ? 'exceptional' :
+
+    // Find the appropriate level based on dynamic score levels
+    let level = defaultLevel;
+    let color = defaultColor;
+
+    if (scoreLevels.length > 0) {
+      const minScore = scoreLevels[0].scoreValue;
+      const maxScore = scoreLevels[scoreLevels.length - 1].scoreValue;
+
+      // Find which level the score falls into
+      for (let i = scoreLevels.length - 1; i >= 0; i--) {
+        if (avg >= scoreLevels[i].scoreValue) {
+          level = scoreLevels[i].name.toLowerCase().replace(/\s+/g, '_');
+          color = scoreLevels[i].color;
+          break;
+        }
+      }
+
+      const percentage = ((avg - minScore) / (maxScore - minScore)) * 100;
+      return { score: avg, level: level as ScoreResult['level'], color, percentage: Math.max(0, Math.min(100, percentage)) };
+    }
+
+    // Fallback to hardcoded values if no score levels loaded
+    const fallbackLevel: ScoreResult['level'] = avg >= 5 ? 'exceptional' :
         avg >= 4.75 ? 'very_good' :
             avg >= 4.5 ? 'good' :
                 avg >= 4.25 ? 'meets' : 'below';
-    const colors: Record<ScoreResult['level'], string> = {
+    const fallbackColors: Record<ScoreResult['level'], string> = {
       below: '#d9534f', meets: '#f0ad4e', good: '#5cb85c',
       very_good: '#28a745', exceptional: '#1e7b34'
     };
 
-    return { score: avg, level, color: colors[level], percentage: ((avg - 3) / 2) * 100 };
-  }, [departments]);
+    return { score: avg, level: fallbackLevel, color: fallbackColors[fallbackLevel], percentage: ((avg - 3) / 2) * 100 };
+  }, [departments, scoreLevels]);
+
+  const defaultScore: ScoreResult = { score: 3, level: 'below', color: scoreLevels[0]?.color || '#d9534f', percentage: 0 };
 
   if (loading) {
     return (
@@ -298,7 +342,7 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Department Cards Grid - More Compact */}
+                  {/* Department Cards Grid with Gauges */}
                   {departments.length > 0 && (
                       <div className="bg-white rounded-xl shadow-lg p-4 border border-slate-200">
                         <h2 className="text-sm font-bold text-slate-800 mb-3">All Departments</h2>
@@ -307,35 +351,20 @@ function App() {
                               <div
                                   key={dept.id}
                                   onClick={() => setModalDepartment(dept)}
-                                  className="bg-gradient-to-br from-slate-50 to-slate-100 p-3 rounded-lg border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                                  className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-200 hover:border-amber-400 hover:shadow-md transition-all duration-200 cursor-pointer group"
                               >
-                                <div className="flex items-center justify-between mb-2">
+                                <div className="text-center mb-1">
                                   <h3 className="font-bold text-slate-800 text-xs truncate group-hover:text-amber-600 transition-colors">
                                     {dept.name}
                                   </h3>
-                                  <span
-                                      className="text-xs font-bold px-1.5 py-0.5 rounded"
-                                      style={{ color: dept.score?.color || '#666', backgroundColor: `${dept.score?.color}15` }}
-                                  >
-                                    {dept.score?.score.toFixed(2) || '0.00'}
-                                  </span>
+                                  <p className="text-xs text-slate-500">{dept.objectives.length} objectives</p>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-slate-500">
-                                    {dept.objectives.length} obj
-                                  </span>
-                                  <div
-                                      className="h-1.5 flex-1 mx-2 rounded-full bg-slate-200 overflow-hidden"
-                                  >
-                                    <div
-                                        className="h-full rounded-full transition-all"
-                                        style={{
-                                          width: `${dept.score?.percentage || 0}%`,
-                                          backgroundColor: dept.score?.color || '#666'
-                                        }}
-                                    />
-                                  </div>
-                                </div>
+                                <Speedometer
+                                    score={dept.score || defaultScore}
+                                    size="sm"
+                                    compact={true}
+                                    showLabel={true}
+                                />
                               </div>
                           ))}
                         </div>
@@ -442,7 +471,7 @@ function App() {
                                 key={objective.id}
                                 department={selectedDepartment}
                                 objective={objective}
-                                onUpdate={fetchDepartments}
+                                onUpdate={refreshAllData}
                             />
                         ))}
                       </div>
@@ -486,7 +515,7 @@ function App() {
             <SettingsModal
                 departments={departments}
                 onClose={() => setShowSettings(false)}
-                onUpdate={fetchDepartments}
+                onUpdate={refreshAllData}
             />
         )}
 

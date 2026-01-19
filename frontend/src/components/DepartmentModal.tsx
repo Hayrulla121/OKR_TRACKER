@@ -49,10 +49,10 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">{department.name} Department</h2>
-                        <p className="text-blue-100 text-xs mt-0.5">Performance Details</p>
+                        <p className="text-amber-100 text-xs mt-0.5">Performance Details</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -76,8 +76,8 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                         <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
                             <h3 className="text-base font-bold text-slate-800 mb-3">Score Summary</h3>
                             <div className="grid grid-cols-3 gap-3">
-                                <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                                    <div className="text-2xl font-bold text-blue-600">{department.objectives.length}</div>
+                                <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-100 rounded-lg">
+                                    <div className="text-2xl font-bold text-amber-600">{department.objectives.length}</div>
                                     <div className="text-xs text-slate-600 mt-0.5">Objectives</div>
                                 </div>
                                 <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">

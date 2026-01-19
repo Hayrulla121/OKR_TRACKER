@@ -262,7 +262,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({
             {/* Status badge */}
             {showLabel && (
                 <div
-                    className={`${compact ? 'mt-2 py-2 px-3' : 'mt-5 py-4 px-5'} w-full rounded-lg font-bold text-white shadow-lg`}
+                    className={`${compact ? 'mt-4 py-2 px-3' : 'mt-8 py-4 px-5'} w-full rounded-lg font-bold text-white shadow-lg`}
                     style={{
                         backgroundColor: score.color,
                         boxShadow: glow ? `0 4px 20px ${score.color}60` : undefined

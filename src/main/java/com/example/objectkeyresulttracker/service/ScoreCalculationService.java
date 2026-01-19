@@ -295,8 +295,22 @@ public class ScoreCalculationService {
         double weightedSum = 0;
         double totalWeight = 0;
 
+        // Count objectives with key results for default weight calculation
+        long objectivesWithKRs = objectives.stream()
+                .filter(obj -> obj.getKeyResults() != null && !obj.getKeyResults().isEmpty())
+                .count();
+
+        if (objectivesWithKRs == 0) {
+            return emptyScore();
+        }
+
         for (Objective obj : objectives) {
-            int weight = obj.getWeight() != null ? obj.getWeight() : 100 / objectives.size();
+            // Skip objectives with no key results
+            if (obj.getKeyResults() == null || obj.getKeyResults().isEmpty()) {
+                continue;
+            }
+
+            double weight = obj.getWeight() != null ? obj.getWeight() : 100.0 / objectivesWithKRs;
             ScoreResult objScore = calculateObjectiveScore(obj.getKeyResults());
             weightedSum += objScore.getScore() * weight;
             totalWeight += weight;
@@ -374,7 +388,7 @@ public class ScoreCalculationService {
 
     private ScoreResult emptyScore() {
         return ScoreResult.builder()
-                .score(0.0)
+                .score(3.0)  // Use minimum valid score instead of 0.0
                 .level("below")
                 .color(getColorForLevel("below"))
                 .percentage(0.0)

@@ -6,12 +6,16 @@ interface SpeedometerProps {
     score: ScoreResult;
     size?: 'sm' | 'md' | 'lg';
     showLabel?: boolean;
+    glow?: boolean;
+    compact?: boolean;
 }
 
 const Speedometer: React.FC<SpeedometerProps> = ({
     score,
     size = 'md',
-    showLabel = true
+    showLabel = true,
+    glow = false,
+    compact = false
 }) => {
     const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
 
@@ -19,7 +23,9 @@ const Speedometer: React.FC<SpeedometerProps> = ({
         const fetchScoreLevels = async () => {
             try {
                 const response = await scoreLevelApi.getAll();
-                setScoreLevels(response.data);
+                // Sort by scoreValue to ensure proper ordering
+                const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
+                setScoreLevels(sorted);
             } catch (error) {
                 console.error('Failed to load score levels for speedometer:', error);
                 // Fallback to defaults if API fails
@@ -110,30 +116,60 @@ const Speedometer: React.FC<SpeedometerProps> = ({
             { value: 5.0, label: '5.0' }
         ];
 
-    const levelLabelsEn: Record<string, string> = {
-        below: 'Below',
-        meets: 'Meets',
-        good: 'Good',
-        very_good: 'Very Good',
-        exceptional: 'Exceptional',
+    // Create dynamic level labels from fetched score levels
+    const levelLabelsEn: Record<string, string> = scoreLevels.length > 0
+        ? scoreLevels.reduce((acc, level) => {
+            // Map both the original name and snake_case version
+            const snakeCase = level.name.toLowerCase().replace(/\s+/g, '_');
+            acc[snakeCase] = level.name;
+            acc[level.name.toLowerCase()] = level.name;
+            return acc;
+        }, {} as Record<string, string>)
+        : {
+            below: 'Below',
+            meets: 'Meets',
+            good: 'Good',
+            very_good: 'Very Good',
+            exceptional: 'Exceptional',
+        };
+
+    // Get the display name for the current score level
+    const getLevelDisplayName = () => {
+        if (scoreLevels.length === 0) {
+            return levelLabelsEn[score.level] || score.level;
+        }
+        // Find the level that matches the current score
+        for (let i = scoreLevels.length - 1; i >= 0; i--) {
+            if (score.score >= scoreLevels[i].scoreValue) {
+                return scoreLevels[i].name;
+            }
+        }
+        return scoreLevels[0]?.name || score.level;
     };
 
+    // Glow style based on score color
+    const glowStyle = glow ? {
+        filter: `drop-shadow(0 0 20px ${score.color}) drop-shadow(0 0 40px ${score.color}40)`,
+    } : {};
+
     return (
-        <div className="flex flex-col items-center w-full">
-            {/* Title with icon */}
-            <div className="flex items-center gap-2 mb-3">
-                <div className="rounded-full bg-red-100 flex items-center justify-center w-6 h-6">
-                    <svg className="text-red-600 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
+        <div className={`flex flex-col items-center w-full ${compact ? 'gap-1' : ''}`}>
+            {/* Title with icon - hidden in compact mode */}
+            {!compact && (
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="rounded-full bg-red-100 flex items-center justify-center w-6 h-6">
+                        <svg className="text-red-600 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <span className={`font-bold text-slate-800 ${titleSize}`}>
+                        Оценка
+                    </span>
                 </div>
-                <span className={`font-bold text-slate-800 ${titleSize}`}>
-                    Оценка
-                </span>
-            </div>
+            )}
 
             {/* Speedometer SVG */}
-            <div className="relative">
+            <div className="relative" style={glowStyle}>
                 <svg width={width} height={height} className="overflow-visible">
                     {/* Background arc segments */}
                     {scoreRanges.map((range, index) => (
@@ -147,13 +183,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({
                         />
                     ))}
 
-                    {/* Inner white circle background for cleaner look */}
-                    <circle
-                        cx={centerX}
-                        cy={centerY}
-                        r={radius - strokeWidth - 8}
-                        fill="white"
-                    />
+
 
                     {/* Tick marks - small inner ticks */}
                     {minorTicks.map((value) => {
@@ -232,13 +262,16 @@ const Speedometer: React.FC<SpeedometerProps> = ({
             {/* Status badge */}
             {showLabel && (
                 <div
-                    className="mt-5 w-full rounded-lg font-bold text-white shadow-lg py-4 px-5"
-                    style={{ backgroundColor: score.color }}
+                    className={`${compact ? 'mt-2 py-2 px-3' : 'mt-5 py-4 px-5'} w-full rounded-lg font-bold text-white shadow-lg`}
+                    style={{
+                        backgroundColor: score.color,
+                        boxShadow: glow ? `0 4px 20px ${score.color}60` : undefined
+                    }}
                 >
-                    <div className="text-center text-base font-bold tracking-wide">
-                        {levelLabelsEn[score.level]}
+                    <div className={`text-center font-bold tracking-wide ${compact ? 'text-sm' : 'text-base'}`}>
+                        {getLevelDisplayName()}
                     </div>
-                    <div className="text-center text-sm mt-1.5 opacity-95 font-semibold">
+                    <div className={`text-center mt-1 opacity-95 font-semibold ${compact ? 'text-xs' : 'text-sm mt-1.5'}`}>
                         {score.score.toFixed(2)} ({percentage.toFixed(1)}%)
                     </div>
                 </div>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Department, Objective, MetricType } from '../types/okr';
-import { departmentApi, objectiveApi, keyResultApi } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Department, Objective, MetricType, ScoreLevel } from '../types/okr';
+import { departmentApi, objectiveApi, keyResultApi, scoreLevelApi } from '../services/api';
 import ScoreLevelsManager from './ScoreLevelsManager';
 
 interface SettingsModalProps {
@@ -31,13 +31,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   const [newKrMetricType, setNewKrMetricType] = useState<MetricType>('HIGHER_BETTER');
   const [newKrUnit, setNewKrUnit] = useState('');
   const [newKrWeight, setNewKrWeight] = useState('100');
-  const [thresholds, setThresholds] = useState({
-    below: '0',
-    meets: '25',
-    good: '50',
-    veryGood: '75',
-    exceptional: '100'
-  });
+  const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
+  const [dynamicThresholds, setDynamicThresholds] = useState<Record<string, string>>({});
+
+  // Fetch score levels on component mount
+  useEffect(() => {
+    const fetchScoreLevels = async () => {
+      try {
+        const response = await scoreLevelApi.getAll();
+        const levels = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
+        setScoreLevels(levels);
+        // Initialize thresholds based on levels
+        const initialThresholds: Record<string, string> = {};
+        levels.forEach((level, index) => {
+          const increment = 100 / (levels.length - 1 || 1);
+          initialThresholds[level.name] = (index * increment).toFixed(0);
+        });
+        setDynamicThresholds(initialThresholds);
+      } catch (err) {
+        console.error('Failed to fetch score levels:', err);
+        // Fallback to defaults - but this shouldn't happen if API is working
+        setScoreLevels([
+          { name: 'Below', scoreValue: 3.0, color: '#dc3545', displayOrder: 0 },
+          { name: 'Meets', scoreValue: 4.25, color: '#ffc107', displayOrder: 1 },
+          { name: 'Good', scoreValue: 4.5, color: '#5cb85c', displayOrder: 2 },
+          { name: 'Very Good', scoreValue: 4.75, color: '#28a745', displayOrder: 3 },
+          { name: 'Exceptional', scoreValue: 5.0, color: '#1e7b34', displayOrder: 4 },
+        ]);
+        setDynamicThresholds({ Below: '0', Meets: '25', Good: '50', 'Very Good': '75', Exceptional: '100' });
+      }
+    };
+    fetchScoreLevels();
+  }, []);
 
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +134,57 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
     }
   };
 
+  // Map dynamic thresholds to the backend's 5-column structure
+  const mapThresholdsToBackend = () => {
+    const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
+    const thresholdValues = sortedLevels.map(level => parseFloat(dynamicThresholds[level.name] || '0'));
+
+    // Backend expects exactly 5 thresholds: below, meets, good, veryGood, exceptional
+    // Map dynamic thresholds to these columns based on count
+    if (sortedLevels.length === 5) {
+      return {
+        below: thresholdValues[0],
+        meets: thresholdValues[1],
+        good: thresholdValues[2],
+        veryGood: thresholdValues[3],
+        exceptional: thresholdValues[4]
+      };
+    } else if (sortedLevels.length === 4) {
+      return {
+        below: thresholdValues[0],
+        meets: thresholdValues[1],
+        good: thresholdValues[2],
+        veryGood: thresholdValues[2], // duplicate
+        exceptional: thresholdValues[3]
+      };
+    } else if (sortedLevels.length === 3) {
+      return {
+        below: thresholdValues[0],
+        meets: thresholdValues[0], // duplicate
+        good: thresholdValues[1],
+        veryGood: thresholdValues[1], // duplicate
+        exceptional: thresholdValues[2]
+      };
+    } else if (sortedLevels.length === 2) {
+      return {
+        below: thresholdValues[0],
+        meets: thresholdValues[0],
+        good: thresholdValues[0],
+        veryGood: thresholdValues[0],
+        exceptional: thresholdValues[1]
+      };
+    } else {
+      // Default fallback
+      return {
+        below: 0,
+        meets: 25,
+        good: 50,
+        veryGood: 75,
+        exceptional: 100
+      };
+    }
+  };
+
   const handleCreateKeyResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedObjId || !newKrName.trim()) return;
@@ -122,20 +198,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
         metricType: newKrMetricType,
         unit: newKrUnit || undefined,
         weight: parseFloat(newKrWeight),
-        thresholds: {
-          below: parseFloat(thresholds.below),
-          meets: parseFloat(thresholds.meets),
-          good: parseFloat(thresholds.good),
-          veryGood: parseFloat(thresholds.veryGood),
-          exceptional: parseFloat(thresholds.exceptional)
-        },
+        thresholds: mapThresholdsToBackend(),
         actualValue: newKrMetricType === 'QUALITATIVE' ? 'E' : '0'
       });
       setNewKrName('');
       setNewKrDescription('');
       setNewKrUnit('');
       setNewKrWeight('100');
-      setThresholds({ below: '0', meets: '25', good: '50', veryGood: '75', exceptional: '100' });
+      // Reset thresholds to initial values
+      const initialThresholds: Record<string, string> = {};
+      scoreLevels.forEach((level, index) => {
+        const increment = 100 / (scoreLevels.length - 1 || 1);
+        initialThresholds[level.name] = (index * increment).toFixed(0);
+      });
+      setDynamicThresholds(initialThresholds);
       onUpdate();
     } catch (err) {
       setError('Failed to create key result');
@@ -435,44 +511,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
 
                   {newKrMetricType !== 'QUALITATIVE' && (
                     <div className="bg-white p-4 rounded-lg border border-slate-200">
-                      <h4 className="font-semibold text-slate-700 mb-3">Threshold Values</h4>
-                      <div className="grid grid-cols-5 gap-2">
-                        <input
-                          type="number"
-                          value={thresholds.below}
-                          onChange={(e) => setThresholds({ ...thresholds, below: e.target.value })}
-                          placeholder="Below"
-                          className="px-3 py-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                        />
-                        <input
-                          type="number"
-                          value={thresholds.meets}
-                          onChange={(e) => setThresholds({ ...thresholds, meets: e.target.value })}
-                          placeholder="Meets"
-                          className="px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
-                        />
-                        <input
-                          type="number"
-                          value={thresholds.good}
-                          onChange={(e) => setThresholds({ ...thresholds, good: e.target.value })}
-                          placeholder="Good"
-                          className="px-3 py-2 border border-green-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
-                        />
-                        <input
-                          type="number"
-                          value={thresholds.veryGood}
-                          onChange={(e) => setThresholds({ ...thresholds, veryGood: e.target.value })}
-                          placeholder="Very Good"
-                          className="px-3 py-2 border border-emerald-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <input
-                          type="number"
-                          value={thresholds.exceptional}
-                          onChange={(e) => setThresholds({ ...thresholds, exceptional: e.target.value })}
-                          placeholder="Exceptional"
-                          className="px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
-                        />
+                      <h4 className="font-semibold text-slate-700 mb-3">
+                        Threshold Values ({scoreLevels.length} levels)
+                      </h4>
+                      <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${scoreLevels.length}, minmax(0, 1fr))` }}>
+                        {[...scoreLevels]
+                          .sort((a, b) => a.scoreValue - b.scoreValue)
+                          .map((level) => (
+                            <div key={level.name} className="flex flex-col">
+                              <label
+                                className="text-xs font-semibold mb-1 truncate"
+                                style={{ color: level.color }}
+                                title={`${level.name} (${level.scoreValue})`}
+                              >
+                                {level.name}
+                              </label>
+                              <input
+                                type="number"
+                                value={dynamicThresholds[level.name] || ''}
+                                onChange={(e) => setDynamicThresholds({
+                                  ...dynamicThresholds,
+                                  [level.name]: e.target.value
+                                })}
+                                placeholder={level.name}
+                                className="px-3 py-2 border-2 rounded-lg text-sm focus:ring-2"
+                                style={{
+                                  borderColor: level.color,
+                                  outlineColor: level.color
+                                }}
+                              />
+                            </div>
+                          ))}
                       </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Enter the actual metric values that correspond to each score level
+                      </p>
                     </div>
                   )}
 

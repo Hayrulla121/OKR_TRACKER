@@ -5,6 +5,7 @@ import Speedometer from './components/Speedometer';
 import DepartmentCard from './components/DepartmentCard';
 import SettingsModal from './components/SettingsModal';
 import DepartmentModal from './components/DepartmentModal';
+import OrgScoreChart from './components/OrgScoreChart';
 
 function App() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -19,6 +20,15 @@ function App() {
     try {
       const response = await departmentApi.getAll();
       setDepartments(response.data);
+      // Update selectedDepartment with fresh data if one is selected
+      // Use functional update to avoid stale closure issues
+      setSelectedDepartment(currentSelected => {
+        if (currentSelected) {
+          const updatedDept = response.data.find(d => d.id === currentSelected.id);
+          return updatedDept || currentSelected;
+        }
+        return currentSelected;
+      });
       setError(null);
     } catch (err) {
       setError('Failed to load departments');
@@ -110,106 +120,102 @@ function App() {
 
   return (
       <div className="h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex overflow-hidden">
-        {/* Left Sidebar - Control Panel - Fixed height with sticky buttons */}
-        <aside className="w-64 bg-white border-r border-slate-200 shadow-xl flex flex-col h-screen">
+        {/* Left Sidebar - Control Panel - Compact Light Theme */}
+        <aside className="w-52 bg-white border-r border-slate-200 shadow-lg flex flex-col h-screen">
           {/* Sidebar Header */}
-          <div className="bg-gradient-to-br from-amber-600 to-orange-600 text-white p-4 shadow-lg flex-shrink-0">
-            <h2 className="text-lg font-bold mb-0.5">Control Panel</h2>
-            <p className="text-amber-100 text-xs">Departments</p>
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-3 shadow-lg flex-shrink-0">
+            <h2 className="text-sm font-bold">Control Panel</h2>
+            <p className="text-amber-100 text-xs opacity-80">Departments</p>
           </div>
 
           {/* Departments List - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
             {departments.map((dept) => (
                 <button
                     key={dept.id}
                     onClick={() => setSelectedDepartment(dept)}
-                    className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+                    className={`w-full text-left p-2 rounded-lg transition-all duration-200 ${
                         selectedDepartment?.id === dept.id
-                            ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg scale-105'
-                            : 'bg-orange-50 hover:bg-orange-100 text-slate-800 border border-orange-200'
+                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md'
+                            : 'bg-orange-50 hover:bg-orange-100 text-slate-700 border border-orange-200'
                     }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <h3 className="font-bold text-xs">{dept.name}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-xs truncate flex-1">{dept.name}</h3>
                     {dept.score && (
                         <span
-                            className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
-                                selectedDepartment?.id === dept.id ? 'bg-white/20' : ''
-                            }`}
-                            style={{
-                              color: selectedDepartment?.id === dept.id ? 'white' : dept.score.color,
-                              backgroundColor: selectedDepartment?.id === dept.id ? 'rgba(255,255,255,0.2)' : `${dept.score.color}15`
-                            }}
+                            className="text-xs font-bold ml-1"
+                            style={{ color: selectedDepartment?.id === dept.id ? 'white' : dept.score.color }}
                         >
-                          {dept.score.score.toFixed(2)}
+                          {dept.score.score.toFixed(1)}
                         </span>
                     )}
                   </div>
-                  <p className={`text-xs ${selectedDepartment?.id === dept.id ? 'text-amber-100' : 'text-slate-600'}`}>
-                    {dept.objectives.length} objective{dept.objectives.length !== 1 ? 's' : ''}
-                  </p>
                 </button>
             ))}
 
             {departments.length === 0 && (
-                <div className="text-center py-8 text-slate-400">
-                  <p className="text-3xl mb-1.5">📋</p>
-                  <p className="text-xs">No departments yet</p>
-                  <p className="text-xs mt-0.5">Create one from settings</p>
+                <div className="text-center py-6 text-slate-400">
+                  <p className="text-2xl mb-1">📋</p>
+                  <p className="text-xs">No departments</p>
                 </div>
             )}
           </div>
 
-          {/* Settings and Export Buttons - Fixed at bottom */}
-          <div className="p-3 border-t border-slate-200 space-y-2 flex-shrink-0 bg-white">
+          {/* Action Buttons - Fixed at bottom */}
+          <div className="p-2 border-t border-slate-200 space-y-1.5 flex-shrink-0 bg-slate-50">
             <button
                 onClick={() => setShowSettings(true)}
-                className="w-full px-3 py-2 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-lg text-sm font-semibold hover:from-slate-800 hover:to-slate-900 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
+                className="w-full px-2 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Settings
             </button>
-
-            <button
-                onClick={handleExportExcel}
-                className="w-full px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg text-sm font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export Excel
-            </button>
-
-            <button
-                onClick={handleLoadDemoData}
-                className="w-full px-3 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg text-sm font-semibold hover:from-amber-700 hover:to-orange-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Load Demo Data
-            </button>
+            <div className="flex gap-1.5">
+              <button
+                  onClick={handleExportExcel}
+                  className="flex-1 px-2 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                Export
+              </button>
+              <button
+                  onClick={handleLoadDemoData}
+                  className="flex-1 px-2 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Demo
+              </button>
+            </div>
           </div>
         </aside>
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto">
-          {/* Header with Title */}
+          {/* Header with Title - More Compact */}
           <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-            <div className="px-6 py-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent">
-                OKR Performance Tracker
-              </h1>
-              <p className="text-slate-600 mt-0.5 text-sm">
-                {selectedDepartment
-                    ? `${selectedDepartment.name} Department Details`
-                    : 'Organization-wide Performance Overview'
-                }
-              </p>
+            <div className="px-4 py-2 flex items-center justify-between">
+              <div>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                  OKR Performance Tracker
+                </h1>
+                <p className="text-slate-500 text-xs">
+                  {selectedDepartment
+                      ? `${selectedDepartment.name} Details`
+                      : 'Organization Overview'
+                  }
+                </p>
+              </div>
+              <div className="text-right text-xs text-slate-400">
+                {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
             </div>
           </header>
 
@@ -224,47 +230,111 @@ function App() {
               </div>
           )}
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 space-y-4">
             {/* Show Main View or Department Detail */}
             {!selectedDepartment ? (
                 <>
-                  {/* Overall Score - Large Speedometer */}
-                  <div className="bg-white rounded-xl shadow-lg p-5 border border-slate-200">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4 text-center">
-                      Overall Organization Score
-                    </h2>
-                    <div className="flex justify-center">
-                      <Speedometer score={overallScore} size="lg" />
+                  {/* Hero Section - Overall Score with Glow + Charts */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Main Gauge with Glow Effect - Light Theme */}
+                    <div
+                        className="lg:col-span-1 rounded-xl shadow-lg p-4 border-2 relative overflow-hidden"
+                        style={{
+                          background: `linear-gradient(135deg, #ffffff 0%, ${overallScore.color}08 100%)`,
+                          borderColor: `${overallScore.color}40`,
+                        }}
+                    >
+                      {/* Glow effect behind gauge */}
+                      <div
+                          className="absolute inset-0 opacity-30"
+                          style={{
+                            background: `radial-gradient(circle at 50% 70%, ${overallScore.color}60 0%, transparent 50%)`,
+                          }}
+                      />
+                      <h2 className="text-sm font-bold text-slate-700 mb-2 text-center relative z-10">
+                        Organization Score
+                      </h2>
+                      <div className="flex justify-center relative z-10">
+                        <Speedometer score={overallScore} size="md" glow={true} compact={true} />
+                      </div>
+                    </div>
+
+                    {/* Organization Score Chart */}
+                    <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-sm font-bold text-slate-800">Organization Score Breakdown</h2>
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span className="w-3 h-0.5 rounded" style={{ backgroundColor: overallScore.color }}></span>
+                          <span>Org Average</span>
+                        </div>
+                      </div>
+                      <OrgScoreChart departments={departments} overallScore={overallScore} height={180} />
                     </div>
                   </div>
 
-                  {/* Department Speedometers Grid */}
+                  {/* Stats Cards Row */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
+                      <div className="text-xs text-slate-500">Departments</div>
+                      <div className="text-2xl font-bold text-slate-800">{departments.length}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
+                      <div className="text-xs text-slate-500">Objectives</div>
+                      <div className="text-2xl font-bold text-slate-800">
+                        {departments.reduce((sum, d) => sum + d.objectives.length, 0)}
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
+                      <div className="text-xs text-slate-500">Key Results</div>
+                      <div className="text-2xl font-bold text-slate-800">
+                        {departments.reduce((sum, d) => sum + d.objectives.reduce((s, o) => s + o.keyResults.length, 0), 0)}
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
+                      <div className="text-xs text-slate-500">Avg Score</div>
+                      <div className="text-2xl font-bold" style={{ color: overallScore.color }}>
+                        {overallScore.score.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Department Cards Grid - More Compact */}
                   {departments.length > 0 && (
-                      <div className="bg-white rounded-xl shadow-lg p-5 border border-slate-200">
-                        <h2 className="text-lg font-bold text-slate-800 mb-4">Department Scores</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <div className="bg-white rounded-xl shadow-lg p-4 border border-slate-200">
+                        <h2 className="text-sm font-bold text-slate-800 mb-3">All Departments</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                           {departments.map((dept) => (
                               <div
                                   key={dept.id}
                                   onClick={() => setModalDepartment(dept)}
-                                  className="bg-gradient-to-br from-white to-orange-50 p-4 rounded-lg border-2 border-orange-200 hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                                  className="bg-gradient-to-br from-slate-50 to-slate-100 p-3 rounded-lg border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all duration-200 cursor-pointer group"
                               >
-                                <div className="text-center mb-3">
-                                  <h3 className="font-bold text-slate-800 text-sm mb-1 group-hover:text-amber-600 transition-colors">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="font-bold text-slate-800 text-xs truncate group-hover:text-amber-600 transition-colors">
                                     {dept.name}
                                   </h3>
-                                  <p className="text-xs text-slate-500">
-                                    {dept.objectives.length} objective{dept.objectives.length !== 1 ? 's' : ''}
-                                  </p>
-                                </div>
-                                <Speedometer
-                                    score={dept.score || defaultScore}
-                                    size="sm"
-                                />
-                                <div className="mt-3 text-center">
-                                  <span className="text-xs text-amber-600 font-semibold group-hover:underline">
-                                    Click for Details →
+                                  <span
+                                      className="text-xs font-bold px-1.5 py-0.5 rounded"
+                                      style={{ color: dept.score?.color || '#666', backgroundColor: `${dept.score?.color}15` }}
+                                  >
+                                    {dept.score?.score.toFixed(2) || '0.00'}
                                   </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-slate-500">
+                                    {dept.objectives.length} obj
+                                  </span>
+                                  <div
+                                      className="h-1.5 flex-1 mx-2 rounded-full bg-slate-200 overflow-hidden"
+                                  >
+                                    <div
+                                        className="h-full rounded-full transition-all"
+                                        style={{
+                                          width: `${dept.score?.percentage || 0}%`,
+                                          backgroundColor: dept.score?.color || '#666'
+                                        }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                           ))}
@@ -273,10 +343,10 @@ function App() {
                   )}
 
                   {departments.length === 0 && (
-                      <div className="bg-white rounded-xl shadow-lg p-12 border border-slate-200 text-center">
-                        <div className="text-5xl mb-3">📊</div>
-                        <h3 className="text-lg font-semibold text-slate-600 mb-1.5">No Departments Yet</h3>
-                        <p className="text-slate-400 text-sm">Create your first department from the settings panel!</p>
+                      <div className="bg-white rounded-xl shadow-lg p-8 border border-slate-200 text-center">
+                        <div className="text-4xl mb-2">📊</div>
+                        <h3 className="text-base font-semibold text-slate-600 mb-1">No Departments Yet</h3>
+                        <p className="text-slate-400 text-xs">Create your first department from settings!</p>
                       </div>
                   )}
                 </>

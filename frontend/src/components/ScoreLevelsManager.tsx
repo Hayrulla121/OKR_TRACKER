@@ -154,7 +154,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                   type="text"
                   value={level.name}
                   onChange={(e) => handleLevelChange(index, 'name', e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#5A9CB5]"
                 />
               </div>
 
@@ -174,12 +174,12 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                         setTempScoreValue('');
                       }
                     }}
-                    className="w-full px-3 py-2 border-2 border-amber-500 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-3 py-2 border-2 border-[#5A9CB5] rounded-lg text-sm focus:ring-2 focus:ring-[#5A9CB5]"
                   />
                 ) : (
                   <div
                     onClick={() => startEditingScore(index, level.scoreValue)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm cursor-text hover:border-amber-400 transition-colors"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm cursor-text hover:border-[#5A9CB5] transition-colors"
                   >
                     {level.scoreValue.toFixed(2)}
                   </div>
@@ -190,7 +190,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                 <label className="block text-xs font-semibold text-slate-600 mb-1">{t.colorClickToPick}</label>
                 <button
                   onClick={() => setShowColorPicker(showColorPicker === index ? null : index)}
-                  className="w-full h-10 rounded-lg border-2 border-slate-300 cursor-pointer hover:border-amber-400 transition-colors shadow-sm flex items-center justify-between px-3"
+                  className="w-full h-10 rounded-lg border-2 border-slate-300 cursor-pointer hover:border-[#5A9CB5] transition-colors shadow-sm flex items-center justify-between px-3"
                   style={{ backgroundColor: level.color }}
                 >
                   <span className="text-white font-mono text-sm drop-shadow-md">{level.color}</span>
@@ -210,7 +210,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
                             setShowColorPicker(null);
                           }}
                           className={`w-8 h-8 rounded-lg border-2 hover:scale-110 transition-transform shadow-sm ${
-                            level.color === color ? 'border-slate-800 ring-2 ring-amber-400 scale-110' : 'border-white'
+                            level.color === color ? 'border-slate-800 ring-2 ring-[#5A9CB5] scale-110' : 'border-white'
                           }`}
                           style={{ backgroundColor: color }}
                           title={color}
@@ -277,7 +277,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
       <div className="flex items-center gap-3">
         <button
           onClick={handleAddLevel}
-          className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold text-sm transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#5A9CB5] text-white rounded-lg hover:bg-cyan-600 font-semibold text-sm transition-colors flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -302,7 +302,7 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
         </button>
 
         {hasChanges && (
-          <span className="text-sm text-amber-600 font-semibold">
+          <span className="text-sm text-[#5A9CB5] font-semibold">
             {t.unsavedChanges}
           </span>
         )}

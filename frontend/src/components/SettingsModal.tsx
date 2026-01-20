@@ -252,10 +252,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-6 rounded-t-2xl flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#5A9CB5] to-cyan-600 text-white p-6 rounded-t-2xl flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">{t.settings}</h2>
-            <p className="text-amber-100 text-sm mt-1">{t.manageDepartmentsObjectivesKRs}</p>
+            <p className="text-cyan-100 text-sm mt-1">{t.manageDepartmentsObjectivesKRs}</p>
           </div>
           <button
             onClick={onClose}
@@ -274,7 +274,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
               onClick={() => setActiveTab('departments')}
               className={`px-4 py-3 font-semibold transition-all ${
                 activeTab === 'departments'
-                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  ? 'text-[#5A9CB5] border-b-2 border-[#5A9CB5]'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -284,7 +284,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
               onClick={() => setActiveTab('objectives')}
               className={`px-4 py-3 font-semibold transition-all ${
                 activeTab === 'objectives'
-                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  ? 'text-[#5A9CB5] border-b-2 border-[#5A9CB5]'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -294,7 +294,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
               onClick={() => setActiveTab('keyResults')}
               className={`px-4 py-3 font-semibold transition-all ${
                 activeTab === 'keyResults'
-                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  ? 'text-[#5A9CB5] border-b-2 border-[#5A9CB5]'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -304,7 +304,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
               onClick={() => setActiveTab('scoreLevels')}
               className={`px-4 py-3 font-semibold transition-all ${
                 activeTab === 'scoreLevels'
-                  ? 'text-amber-600 border-b-2 border-amber-600'
+                  ? 'text-[#5A9CB5] border-b-2 border-[#5A9CB5]'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -332,13 +332,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     value={newDeptName}
                     onChange={(e) => setNewDeptName(e.target.value)}
                     placeholder={t.departmentName}
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     required
                   />
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:bg-slate-400 transition-colors"
+                    className="px-6 py-2 bg-[#5A9CB5] text-white rounded-lg font-semibold hover:bg-cyan-600 disabled:bg-slate-400 transition-colors"
                   >
                     {t.create}
                   </button>
@@ -385,7 +385,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   <select
                     value={selectedDeptId}
                     onChange={(e) => setSelectedDeptId(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     required
                   >
                     <option value="">{t.selectDepartment}</option>
@@ -398,7 +398,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     value={newObjName}
                     onChange={(e) => setNewObjName(e.target.value)}
                     placeholder={t.objectiveName}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     required
                   />
                   <div className="flex gap-3">
@@ -409,13 +409,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       placeholder={t.weightPercent}
                       min="0"
                       max="100"
-                      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                       required
                     />
                     <button
                       type="submit"
                       disabled={loading}
-                      className="px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:bg-slate-400 transition-colors"
+                      className="px-6 py-2 bg-[#5A9CB5] text-white rounded-lg font-semibold hover:bg-cyan-600 disabled:bg-slate-400 transition-colors"
                     >
                       {t.create}
                     </button>
@@ -463,7 +463,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   <select
                     value={selectedObjId}
                     onChange={(e) => setSelectedObjId(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     required
                   >
                     <option value="">{t.selectObjective}</option>
@@ -476,21 +476,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     value={newKrName}
                     onChange={(e) => setNewKrName(e.target.value)}
                     placeholder={t.keyResultName}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     required
                   />
                   <textarea
                     value={newKrDescription}
                     onChange={(e) => setNewKrDescription(e.target.value)}
                     placeholder={t.descriptionOptional}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     rows={2}
                   />
                   <div className="grid grid-cols-2 gap-3">
                     <select
                       value={newKrMetricType}
                       onChange={(e) => setNewKrMetricType(e.target.value as MetricType)}
-                      className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     >
                       <option value="HIGHER_BETTER">{t.higherIsBetter}</option>
                       <option value="LOWER_BETTER">{t.lowerIsBetter}</option>
@@ -502,7 +502,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                         value={newKrUnit}
                         onChange={(e) => setNewKrUnit(e.target.value)}
                         placeholder={t.unitExample}
-                        className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                       />
                     )}
                   </div>
@@ -513,7 +513,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     placeholder={t.weightPercent}
                     min="0"
                     max="100"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
                     required
                   />
 
@@ -560,7 +560,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full px-6 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:bg-slate-400 transition-colors"
+                    className="w-full px-6 py-2 bg-[#5A9CB5] text-white rounded-lg font-semibold hover:bg-cyan-600 disabled:bg-slate-400 transition-colors"
                   >
                     {t.createKeyResult}
                   </button>

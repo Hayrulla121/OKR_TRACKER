@@ -9,43 +9,30 @@ import {
     ResponsiveContainer,
     ReferenceLine
 } from 'recharts';
-import { Department, ScoreResult } from '../types/okr';
+import { Objective, ScoreResult } from '../types/okr';
 
-interface OrgScoreChartProps {
-    departments: Department[];
-    overallScore: ScoreResult;
+interface ObjectiveScoreChartProps {
+    objectives: Objective[];
+    departmentScore: ScoreResult;
     height?: number;
 }
 
-const OrgScoreChart: React.FC<OrgScoreChartProps> = ({
-    departments,
-    overallScore,
-    height = 180
+const ObjectiveScoreChart: React.FC<ObjectiveScoreChartProps> = ({
+    objectives,
+    departmentScore,
+    height = 150
 }) => {
-    // Create data points showing how each department contributes to the org score
-    // This creates a visual flow from min to max with the org score highlighted
-    const sortedDepts = [...departments]
-        .filter(d => d.score)
+    const sortedObjectives = [...objectives]
+        .filter(o => o.score)
         .sort((a, b) => (a.score?.score || 0) - (b.score?.score || 0));
 
-    const data = sortedDepts.map((dept, index) => ({
-        name: dept.name.length > 10 ? dept.name.substring(0, 10) + '...' : dept.name,
-        fullName: dept.name,
-        score: dept.score?.score || 0,
-        orgScore: overallScore.score,
-        color: dept.score?.color || '#666'
+    const data = sortedObjectives.map((obj) => ({
+        name: obj.name.length > 12 ? obj.name.substring(0, 12) + '...' : obj.name,
+        fullName: obj.name,
+        score: obj.score?.score || 0,
+        color: obj.score?.color || '#666',
+        weight: obj.weight
     }));
-
-    // Add org average point at the end
-    if (data.length > 0) {
-        data.push({
-            name: 'Org Avg',
-            fullName: 'Organization Average',
-            score: overallScore.score,
-            orgScore: overallScore.score,
-            color: overallScore.color
-        });
-    }
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
@@ -56,16 +43,17 @@ const OrgScoreChart: React.FC<OrgScoreChartProps> = ({
                     <p className="mt-1">
                         Score: <span className="font-bold" style={{ color: d.color }}>{d.score.toFixed(2)}</span>
                     </p>
+                    <p className="text-slate-500">Weight: {d.weight}%</p>
                 </div>
             );
         }
         return null;
     };
 
-    if (departments.length === 0) {
+    if (objectives.length === 0) {
         return (
             <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-                No data available
+                No objectives available
             </div>
         );
     }
@@ -80,9 +68,9 @@ const OrgScoreChart: React.FC<OrgScoreChartProps> = ({
                     tickLine={false}
                     axisLine={{ stroke: '#e2e8f0' }}
                     interval={0}
-                    angle={-20}
+                    angle={-15}
                     textAnchor="end"
-                    height={40}
+                    height={35}
                 />
                 <YAxis
                     domain={[3, 5]}
@@ -93,29 +81,41 @@ const OrgScoreChart: React.FC<OrgScoreChartProps> = ({
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <ReferenceLine
-                    y={overallScore.score}
-                    stroke={overallScore.color}
+                    y={departmentScore.score}
+                    stroke={departmentScore.color}
                     strokeDasharray="5 5"
                     strokeWidth={2}
                     label={{
-                        value: `Org: ${overallScore.score.toFixed(2)}`,
+                        value: `Avg: ${departmentScore.score.toFixed(2)}`,
                         position: 'right',
-                        fontSize: 10,
-                        fill: overallScore.color,
+                        fontSize: 9,
+                        fill: departmentScore.color,
                         fontWeight: 'bold'
                     }}
                 />
                 <Line
                     type="linear"
                     dataKey="score"
-                    stroke={overallScore.color}
+                    stroke="#5A9CB5"
                     strokeWidth={2}
-                    dot={{ fill: overallScore.color, strokeWidth: 2, r: 4, stroke: '#fff' }}
-                    activeDot={{ r: 6, fill: overallScore.color, stroke: '#fff', strokeWidth: 2 }}
+                    dot={(props: any) => {
+                        const { cx, cy, payload } = props;
+                        return (
+                            <circle
+                                cx={cx}
+                                cy={cy}
+                                r={5}
+                                fill={payload.color}
+                                stroke="#fff"
+                                strokeWidth={2}
+                            />
+                        );
+                    }}
+                    activeDot={{ r: 7, stroke: '#fff', strokeWidth: 2 }}
                 />
             </LineChart>
         </ResponsiveContainer>
     );
 };
 
-export default OrgScoreChart;
+export default ObjectiveScoreChart;

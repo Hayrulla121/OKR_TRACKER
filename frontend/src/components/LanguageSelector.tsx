@@ -15,7 +15,7 @@ const LanguageSelector: React.FC = () => {
       <select
         value={language}
         onChange={(e) => setLanguage(e.target.value as Language)}
-        className="appearance-none bg-white border border-slate-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-medium text-slate-700 cursor-pointer hover:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+        className="appearance-none bg-white border border-slate-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-medium text-slate-700 cursor-pointer hover:border-[#5A9CB5] focus:outline-none focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5] transition-colors"
         title={t.language}
       >
         {languages.map((lang) => (

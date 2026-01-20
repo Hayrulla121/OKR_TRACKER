@@ -6,6 +6,7 @@ import DepartmentCard from './components/DepartmentCard';
 import SettingsModal from './components/SettingsModal';
 import DepartmentModal from './components/DepartmentModal';
 import OrgScoreChart from './components/OrgScoreChart';
+import ObjectiveScoreChart from './components/ObjectiveScoreChart';
 import LanguageSelector from './components/LanguageSelector';
 import { useLanguage } from './i18n';
 
@@ -148,9 +149,9 @@ function App() {
 
   if (loading) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-cyan-50 to-teal-50">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto"></div>
             <p className="mt-4 text-slate-700 font-medium">{t.loadingOKRTracker}</p>
           </div>
         </div>
@@ -158,12 +159,12 @@ function App() {
   }
 
   return (
-      <div className="h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex overflow-hidden">
+      <div className="h-screen bg-gradient-to-br from-sky-50 via-cyan-50 to-teal-50 flex overflow-hidden">
         {/* Left Sidebar */}
         <aside className="w-52 bg-white border-r border-slate-200 shadow-lg flex flex-col h-screen">
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-3 shadow-lg flex-shrink-0">
+          <div className="bg-gradient-to-br from-primary to-cyan-600 text-white p-3 shadow-lg flex-shrink-0">
             <h2 className="text-sm font-bold">{t.controlPanel}</h2>
-            <p className="text-amber-100 text-xs opacity-80">{t.departments}</p>
+            <p className="text-cyan-100 text-xs opacity-80">{t.departments}</p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
@@ -173,8 +174,8 @@ function App() {
                     onClick={() => setSelectedDepartment(dept)}
                     className={`w-full text-left p-2 rounded-lg transition-all duration-200 ${
                         selectedDepartment?.id === dept.id
-                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md'
-                            : 'bg-orange-50 hover:bg-orange-100 text-slate-700 border border-orange-200'
+                            ? 'bg-gradient-to-r from-primary to-cyan-600 text-white shadow-md'
+                            : 'bg-sky-50 hover:bg-sky-100 text-slate-700 border border-sky-200'
                     }`}
                 >
                   <div className="flex items-center justify-between">
@@ -222,7 +223,7 @@ function App() {
               </button>
               <button
                   onClick={handleLoadDemoData}
-                  className="flex-1 px-2 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 px-2 py-1.5 bg-secondary hover:bg-[#FACE68] text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -238,7 +239,7 @@ function App() {
           <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
             <div className="px-4 py-2 flex items-center justify-between">
               <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-cyan-600 bg-clip-text text-transparent">
                   {t.appTitle}
                 </h1>
                 <p className="text-slate-500 text-xs">
@@ -338,10 +339,10 @@ function App() {
                               <div
                                   key={dept.id}
                                   onClick={() => setModalDepartment(dept)}
-                                  className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-200 hover:border-amber-400 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                                  className="bg-gradient-to-br from-sky-50 to-cyan-50 p-3 rounded-lg border border-sky-200 hover:border-primary hover:shadow-md transition-all duration-200 cursor-pointer group"
                               >
                                 <div className="text-center mb-1">
-                                  <h3 className="font-bold text-slate-800 text-xs truncate group-hover:text-amber-600 transition-colors">
+                                  <h3 className="font-bold text-slate-800 text-xs truncate group-hover:text-primary transition-colors">
                                     {dept.name}
                                   </h3>
                                   <p className="text-xs text-slate-500">{dept.objectives.length} {t.objectives}</p>
@@ -386,8 +387,8 @@ function App() {
                           onClick={() => setViewMode('list')}
                           className={`px-4 py-2 text-sm font-semibold rounded-l-lg transition-all ${
                               viewMode === 'list'
-                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white'
-                                  : 'bg-white text-slate-700 hover:bg-orange-50'
+                                  ? 'bg-gradient-to-r from-primary to-cyan-600 text-white'
+                                  : 'bg-white text-slate-700 hover:bg-sky-50'
                           }`}
                       >
                         <svg className="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -399,8 +400,8 @@ function App() {
                           onClick={() => setViewMode('grid')}
                           className={`px-4 py-2 text-sm font-semibold rounded-r-lg transition-all ${
                               viewMode === 'grid'
-                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white'
-                                  : 'bg-white text-slate-700 hover:bg-orange-50'
+                                  ? 'bg-gradient-to-r from-primary to-cyan-600 text-white'
+                                  : 'bg-white text-slate-700 hover:bg-sky-50'
                           }`}
                       >
                         <svg className="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,25 +419,23 @@ function App() {
                     </div>
 
                     <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-5 border border-slate-200">
-                      <h2 className="text-base font-bold text-slate-800 mb-4">{t.scoreSummary}</h2>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="text-center p-3 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg border border-amber-200">
-                          <div className="text-2xl font-bold text-amber-700">{selectedDepartment.objectives.length}</div>
-                          <div className="text-xs text-slate-600 mt-0.5">{t.objectivesLabel}</div>
-                        </div>
-                        <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200">
-                          <div className="text-2xl font-bold text-orange-700">
-                            {selectedDepartment.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)}
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-base font-bold text-slate-800">{t.scoreSummary}</h2>
+                        <div className="flex items-center gap-4 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-3 h-0.5 rounded" style={{ backgroundColor: selectedDepartment.score?.color || '#666' }}></span>
+                            <span className="text-slate-500">{t.avgScore}: <span className="font-bold" style={{ color: selectedDepartment.score?.color || '#666' }}>{selectedDepartment.score?.score.toFixed(2) || '0.00'}</span></span>
                           </div>
-                          <div className="text-xs text-slate-600 mt-0.5">{t.keyResultsLabel}</div>
-                        </div>
-                        <div className="text-center p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
-                          <div className="text-2xl font-bold" style={{ color: selectedDepartment.score?.color || '#666' }}>
-                            {selectedDepartment.score?.score.toFixed(2) || '0.00'}
+                          <div className="text-slate-400">
+                            {selectedDepartment.objectives.length} {t.objectives} | {selectedDepartment.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)} {t.keyResultsLabel}
                           </div>
-                          <div className="text-xs text-slate-600 mt-0.5">{t.avgScore}</div>
                         </div>
                       </div>
+                      <ObjectiveScoreChart
+                        objectives={selectedDepartment.objectives}
+                        departmentScore={selectedDepartment.score || defaultScore}
+                        height={160}
+                      />
                     </div>
                   </div>
 
@@ -461,11 +460,11 @@ function App() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {selectedDepartment.objectives.map((objective) => (
                             <div key={objective.id} className="bg-white rounded-xl shadow-lg border-2 border-slate-200 overflow-hidden">
-                              <div className="bg-gradient-to-r from-amber-400 to-amber-500 p-4">
+                              <div className="bg-gradient-to-r from-primary to-cyan-600 p-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
                                     <h3 className="text-base font-bold text-white">{objective.name}</h3>
-                                    <p className="text-amber-100 text-xs mt-0.5">
+                                    <p className="text-cyan-100 text-xs mt-0.5">
                                       {objective.keyResults.length} {t.keyResult}{objective.keyResults.length !== 1 ? 's' : ''}
                                     </p>
                                   </div>

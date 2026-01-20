@@ -211,7 +211,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
         <div className="bg-white rounded-xl shadow-lg border-2 border-slate-200 overflow-hidden">
             {/* Objective Header */}
             <div
-                className="bg-gradient-to-r from-amber-400 to-amber-500 p-4 cursor-pointer"
+                className="bg-gradient-to-r from-[#5A9CB5] to-cyan-600 p-4 cursor-pointer"
                 onClick={() => setExpanded(!expanded)}
             >
                 <div className="flex items-center justify-between">
@@ -222,7 +222,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                 {t.weight}: {objective.weight}%
                             </span>
                         </div>
-                        <p className="text-amber-100 text-xs mt-0.5">
+                        <p className="text-cyan-100 text-xs mt-0.5">
                             {objective.keyResults.length} {t.keyResult}{objective.keyResults.length !== 1 ? 's' : ''}
                         </p>
                     </div>
@@ -256,7 +256,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                         e.stopPropagation();
                                         handleRefresh();
                                     }}
-                                    className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
+                                    className="px-3 py-1 bg-[#5A9CB5] hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1"
                                 >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -297,7 +297,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                                 <thead>
-                                <tr className="bg-gradient-to-r from-amber-600 to-orange-600 text-white">
+                                <tr className="bg-gradient-to-r from-[#5A9CB5] to-cyan-600 text-white">
                                     <th className="px-3 py-2 text-left font-bold">KR</th>
                                     <th className="px-3 py-2 text-left font-bold">{t.keyResult}</th>
                                     <th className="px-3 py-2 text-center font-bold">{t.actual}</th>
@@ -323,7 +323,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                 {objective.keyResults.map((kr, index) => (
                                     <tr
                                         key={kr.id}
-                                        className={`border-b border-slate-200 ${index % 2 === 0 ? 'bg-white' : 'bg-orange-50'} hover:bg-amber-50 transition-colors`}
+                                        className={`border-b border-slate-200 ${index % 2 === 0 ? 'bg-white' : 'bg-sky-50'} hover:bg-cyan-50 transition-colors`}
                                     >
                                         <td className="px-3 py-3 font-bold text-slate-700">
                                             KR{index + 1}
@@ -345,7 +345,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                                     onFocus={() => handleFocus(kr.id)}
                                                     onBlur={() => handleBlur(kr)}
                                                     disabled={savingIds.has(kr.id)}
-                                                    className="border-2 border-orange-300 rounded-md px-2 py-1 font-bold text-center focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-xs disabled:opacity-50"
+                                                    className="border-2 border-sky-300 rounded-md px-2 py-1 font-bold text-center focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5] text-xs disabled:opacity-50"
                                                 >
                                                     <option value="A">A</option>
                                                     <option value="B">B</option>
@@ -362,12 +362,12 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                                         onFocus={() => handleFocus(kr.id)}
                                                         onBlur={() => handleBlur(kr)}
                                                         disabled={savingIds.has(kr.id)}
-                                                        className="border-2 border-orange-300 rounded-md px-2 py-1 w-20 font-bold text-center focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-xs disabled:opacity-50"
+                                                        className="border-2 border-sky-300 rounded-md px-2 py-1 w-20 font-bold text-center focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5] text-xs disabled:opacity-50"
                                                         placeholder="0"
                                                     />
                                                     {savingIds.has(kr.id) && (
                                                         <div className="absolute inset-0 flex items-center justify-center">
-                                                            <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                                                            <div className="w-4 h-4 border-2 border-[#5A9CB5] border-t-transparent rounded-full animate-spin"></div>
                                                         </div>
                                                     )}
                                                     {kr.unit && (
@@ -402,7 +402,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
                                 ))}
 
                                 {/* Overall Calculation Row */}
-                                <tr className="bg-gradient-to-r from-yellow-100 to-amber-100 border-t-4 border-amber-400">
+                                <tr className="bg-gradient-to-r from-sky-100 to-cyan-100 border-t-4 border-[#5A9CB5]">
                                     <td colSpan={3 + (scoreLevels.length > 0 ? scoreLevels.length : 5)} className="px-3 py-3 font-bold text-slate-800 text-right">
                                         {t.averageScore} (Sum of all KR scores / {objective.keyResults.length}) =
                                     </td>

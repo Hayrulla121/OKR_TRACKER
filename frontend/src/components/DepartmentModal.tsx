@@ -2,6 +2,7 @@ import React from 'react';
 import { Department } from '../types/okr';
 import Speedometer from './Speedometer';
 import DepartmentCard from './DepartmentCard';
+import ObjectiveScoreChart from './ObjectiveScoreChart';
 import { useLanguage } from '../i18n';
 
 interface DepartmentModalProps {
@@ -45,10 +46,10 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-4 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-[#5A9CB5] to-cyan-600 text-white p-4 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">{department.name}</h2>
-                        <p className="text-amber-100 text-xs mt-0.5">{t.performanceDetails}</p>
+                        <p className="text-cyan-100 text-xs mt-0.5">{t.performanceDetails}</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -70,25 +71,23 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                         </div>
 
                         <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
-                            <h3 className="text-base font-bold text-slate-800 mb-3">{t.scoreSummary}</h3>
-                            <div className="grid grid-cols-3 gap-3">
-                                <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-100 rounded-lg">
-                                    <div className="text-2xl font-bold text-amber-600">{department.objectives.length}</div>
-                                    <div className="text-xs text-slate-600 mt-0.5">{t.objectivesLabel}</div>
-                                </div>
-                                <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                                    <div className="text-2xl font-bold text-purple-600">
-                                        {department.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)}
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-base font-bold text-slate-800">{t.scoreSummary}</h3>
+                                <div className="flex items-center gap-4 text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-3 h-0.5 rounded" style={{ backgroundColor: department.score?.color || '#666' }}></span>
+                                        <span className="text-slate-500">{t.avgScore}: <span className="font-bold" style={{ color: department.score?.color || '#666' }}>{department.score?.score.toFixed(2) || '0.00'}</span></span>
                                     </div>
-                                    <div className="text-xs text-slate-600 mt-0.5">{t.keyResultsLabel}</div>
-                                </div>
-                                <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                                    <div className="text-2xl font-bold" style={{ color: department.score?.color || '#666' }}>
-                                        {department.score?.score.toFixed(2) || '0.00'}
+                                    <div className="text-slate-400">
+                                        {department.objectives.length} {t.objectivesLabel} | {department.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)} {t.keyResultsLabel}
                                     </div>
-                                    <div className="text-xs text-slate-600 mt-0.5">{t.avgScore}</div>
                                 </div>
                             </div>
+                            <ObjectiveScoreChart
+                                objectives={department.objectives}
+                                departmentScore={department.score || defaultScore}
+                                height={140}
+                            />
                         </div>
                     </div>
 

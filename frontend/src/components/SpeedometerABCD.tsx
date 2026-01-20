@@ -95,7 +95,7 @@ const SpeedometerABCD: React.FC<Props> = ({ value, title, subtitle, size = 'md' 
                                 style={{
                                     backgroundColor: gradeColor.bg,
                                     color: gradeColor.text,
-                                    ringColor: gradeColor.bg
+                                    ...(value === grade ? { '--tw-ring-color': gradeColor.bg } as any : {})
                                 }}
                             >
                                 {grade}

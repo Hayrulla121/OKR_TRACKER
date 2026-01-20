@@ -139,49 +139,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   // Map dynamic thresholds to the backend's 5-column structure
   const mapThresholdsToBackend = () => {
     const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
-    const thresholdValues = sortedLevels.map(level => parseFloat(dynamicThresholds[level.name] || '0'));
 
-    if (sortedLevels.length === 5) {
-      return {
-        below: thresholdValues[0],
-        meets: thresholdValues[1],
-        good: thresholdValues[2],
-        veryGood: thresholdValues[3],
-        exceptional: thresholdValues[4]
-      };
-    } else if (sortedLevels.length === 4) {
-      return {
-        below: thresholdValues[0],
-        meets: thresholdValues[1],
-        good: thresholdValues[2],
-        veryGood: thresholdValues[2],
-        exceptional: thresholdValues[3]
-      };
-    } else if (sortedLevels.length === 3) {
-      return {
-        below: thresholdValues[0],
-        meets: thresholdValues[0],
-        good: thresholdValues[1],
-        veryGood: thresholdValues[1],
-        exceptional: thresholdValues[2]
-      };
-    } else if (sortedLevels.length === 2) {
-      return {
-        below: thresholdValues[0],
-        meets: thresholdValues[0],
-        good: thresholdValues[0],
-        veryGood: thresholdValues[0],
-        exceptional: thresholdValues[1]
-      };
-    } else {
-      return {
-        below: 0,
-        meets: 25,
-        good: 50,
-        veryGood: 75,
-        exceptional: 100
-      };
-    }
+    // Create a name-to-threshold mapping
+    const thresholdByName: Record<string, number> = {};
+    sortedLevels.forEach(level => {
+      thresholdByName[level.name] = parseFloat(dynamicThresholds[level.name] || '0');
+    });
+
+    // Map to backend's 5 expected fields based on actual level names
+    // Default fallback: use adjacent levels if a specific one doesn't exist
+    const findThreshold = (preferredNames: string[]): number => {
+      for (const name of preferredNames) {
+        if (thresholdByName[name] !== undefined) {
+          return thresholdByName[name];
+        }
+      }
+      // Fallback: return first available threshold
+      return Object.values(thresholdByName)[0] || 0;
+    };
+
+    return {
+      below: findThreshold(['Below', 'Meets', 'Good']),
+      meets: findThreshold(['Meets', 'Good', 'Below']),
+      good: findThreshold(['Good', 'Meets', 'Very Good']),
+      veryGood: findThreshold(['Very Good', 'Good', 'Exceptional']),
+      exceptional: findThreshold(['Exceptional', 'Very Good', 'Good'])
+    };
   };
 
   const handleCreateKeyResult = async (e: React.FormEvent) => {

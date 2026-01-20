@@ -140,89 +140,91 @@ public class ScoreCalculationService {
             return calculateWithDefaultLevels(actual, type, below, meets, good, veryGood, exceptional);
         }
 
-        // Map the 5 thresholds to the score levels
-        Double[] thresholds = {below, meets, good, veryGood, exceptional};
+        // Create threshold-to-score-level mapping
+        // Map the 5 backend thresholds to dynamic score levels
+        // scoreLevels are sorted by scoreValue ascending: [lowest, ..., highest]
+        int numLevels = scoreLevels.size();
 
-        double score;
-        String level;
+        // Build a list of threshold-score pairs, sorted by threshold value
+        // For missing thresholds (null), we'll skip them
+        List<ThresholdScore> thresholdScores = new ArrayList<>();
 
-        int size = scoreLevels.size();
-        int lastIdx = size - 1;
+        if (below != null) thresholdScores.add(new ThresholdScore(below, 0));
+        if (meets != null) thresholdScores.add(new ThresholdScore(meets, Math.min(1, numLevels - 1)));
+        if (good != null) thresholdScores.add(new ThresholdScore(good, Math.min(2, numLevels - 1)));
+        if (veryGood != null) thresholdScores.add(new ThresholdScore(veryGood, Math.min(3, numLevels - 1)));
+        if (exceptional != null) thresholdScores.add(new ThresholdScore(exceptional, numLevels - 1));
+
+        // Sort thresholds based on metric type
+        if (type == KeyResult.MetricType.HIGHER_BETTER) {
+            thresholdScores.sort(Comparator.comparingDouble(ts -> ts.threshold));
+        } else {
+            thresholdScores.sort((ts1, ts2) -> Double.compare(ts2.threshold, ts1.threshold));
+        }
+
+        // Find which range the actual value falls into
+        double score = scoreLevels.get(0).getScoreValue();
+        String level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
 
         if (type == KeyResult.MetricType.HIGHER_BETTER) {
-            // Find which threshold range the actual value falls into
-            if (actual >= exceptional) {
-                score = scoreLevels.get(lastIdx).getScoreValue();
-                level = scoreLevels.get(lastIdx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual >= veryGood) {
-                // Between veryGood and exceptional
-                int idx = Math.max(0, Math.min(lastIdx - 1, 3));
-                double ratio = (actual - veryGood) / Math.max(exceptional - veryGood, 1);
-                double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual >= good) {
-                // Between good and veryGood
-                int idx = Math.max(0, Math.min(lastIdx - 2, 2));
-                double ratio = (actual - good) / Math.max(veryGood - good, 1);
-                double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual >= meets) {
-                // Between meets and good
-                int idx = Math.max(0, Math.min(lastIdx - 3, 1));
-                double ratio = (actual - meets) / Math.max(good - meets, 1);
-                double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual >= below) {
-                // Between below and meets
-                double ratio = (actual - below) / Math.max(meets - below, 1);
-                double startScore = scoreLevels.get(0).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
-            } else {
-                // Below minimum threshold
+            // For HIGHER_BETTER, check from highest to lowest threshold
+            boolean found = false;
+            for (int i = thresholdScores.size() - 1; i >= 0; i--) {
+                ThresholdScore ts = thresholdScores.get(i);
+                if (actual >= ts.threshold) {
+                    int scoreIdx = ts.scoreLevelIndex;
+
+                    // If at the highest level, assign that score directly
+                    if (i == thresholdScores.size() - 1) {
+                        score = scoreLevels.get(scoreIdx).getScoreValue();
+                        level = scoreLevels.get(scoreIdx).getName().toLowerCase().replace(" ", "_");
+                    } else {
+                        // Interpolate between current and next threshold
+                        ThresholdScore nextTs = thresholdScores.get(i + 1);
+                        double ratio = (actual - ts.threshold) / Math.max(nextTs.threshold - ts.threshold, 0.001);
+                        double startScore = scoreLevels.get(scoreIdx).getScoreValue();
+                        double endScore = scoreLevels.get(nextTs.scoreLevelIndex).getScoreValue();
+                        score = startScore + ratio * (endScore - startScore);
+                        level = scoreLevels.get(scoreIdx).getName().toLowerCase().replace(" ", "_");
+                    }
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                // Below all thresholds
                 score = scoreLevels.get(0).getScoreValue();
                 level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
             }
         } else {
-            // Lower is better - reverse the logic
-            if (actual <= exceptional) {
-                score = scoreLevels.get(lastIdx).getScoreValue();
-                level = scoreLevels.get(lastIdx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual <= veryGood) {
-                int idx = Math.max(0, Math.min(lastIdx - 1, 3));
-                double ratio = 1 - (actual - exceptional) / Math.max(veryGood - exceptional, 1);
-                double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual <= good) {
-                int idx = Math.max(0, Math.min(lastIdx - 2, 2));
-                double ratio = 1 - (actual - veryGood) / Math.max(good - veryGood, 1);
-                double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual <= meets) {
-                int idx = Math.max(0, Math.min(lastIdx - 3, 1));
-                double ratio = 1 - (actual - good) / Math.max(meets - good, 1);
-                double startScore = scoreLevels.get(idx).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(idx + 1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(idx).getName().toLowerCase().replace(" ", "_");
-            } else if (actual <= below) {
-                double ratio = 1 - (actual - meets) / Math.max(below - meets, 1);
-                double startScore = scoreLevels.get(0).getScoreValue();
-                double endScore = scoreLevels.get(Math.min(1, lastIdx)).getScoreValue();
-                score = startScore + ratio * (endScore - startScore);
-                level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
-            } else {
+            // For LOWER_BETTER, check from lowest to highest threshold (reversed)
+            boolean found = false;
+            for (int i = thresholdScores.size() - 1; i >= 0; i--) {
+                ThresholdScore ts = thresholdScores.get(i);
+                if (actual <= ts.threshold) {
+                    int scoreIdx = ts.scoreLevelIndex;
+
+                    // If at the best (lowest) level, assign that score directly
+                    if (i == thresholdScores.size() - 1) {
+                        score = scoreLevels.get(scoreIdx).getScoreValue();
+                        level = scoreLevels.get(scoreIdx).getName().toLowerCase().replace(" ", "_");
+                    } else {
+                        // Interpolate between current and next threshold
+                        ThresholdScore nextTs = thresholdScores.get(i + 1);
+                        double ratio = 1 - (actual - nextTs.threshold) / Math.max(ts.threshold - nextTs.threshold, 0.001);
+                        double startScore = scoreLevels.get(scoreIdx).getScoreValue();
+                        double endScore = scoreLevels.get(nextTs.scoreLevelIndex).getScoreValue();
+                        score = startScore + ratio * (endScore - startScore);
+                        level = scoreLevels.get(scoreIdx).getName().toLowerCase().replace(" ", "_");
+                    }
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                // Above all thresholds (worst for LOWER_BETTER)
                 score = scoreLevels.get(0).getScoreValue();
                 level = scoreLevels.get(0).getName().toLowerCase().replace(" ", "_");
             }
@@ -239,6 +241,17 @@ public class ScoreCalculationService {
                 .color(getColorForLevel(level))
                 .percentage(scoreToPercentage(score))
                 .build();
+    }
+
+    // Helper class for threshold-score mapping
+    private static class ThresholdScore {
+        double threshold;
+        int scoreLevelIndex;
+
+        ThresholdScore(double threshold, int scoreLevelIndex) {
+            this.threshold = threshold;
+            this.scoreLevelIndex = scoreLevelIndex;
+        }
     }
 
     private ScoreResult calculateWithDefaultLevels(

@@ -18,7 +18,17 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
     const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Track last fetch to prevent duplicate requests
+    const lastFetchRef = React.useRef<string>('');
+
     const fetchEvaluations = async () => {
+        const fetchKey = `${targetType}-${targetId}`;
+        if (lastFetchRef.current === fetchKey && evaluations.length > 0) {
+            setLoading(false);
+            return;
+        }
+        lastFetchRef.current = fetchKey;
+
         try {
             const response = await evaluationApi.getForTarget(targetType, targetId);
             setEvaluations(response.data);
@@ -66,12 +76,6 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
         e => e.evaluatorId === user.id && String(e.evaluatorType) === String(EvaluatorType.BUSINESS_BLOCK)
     );
 
-    // Debug logging - remove after fixing
-    console.log('EvaluationPanel Debug:', {
-        userId: user.id,
-        evaluations: evaluations.map(e => ({ id: e.id, evaluatorId: e.evaluatorId, evaluatorType: e.evaluatorType })),
-        directorEvaluation: directorEvaluation ? { id: directorEvaluation.id, evaluatorId: directorEvaluation.evaluatorId } : null
-    });
 
     // Determine if user can evaluate based on role
     const canEvaluateAsDirector = user.role === Role.DIRECTOR || user.role === Role.ADMIN;

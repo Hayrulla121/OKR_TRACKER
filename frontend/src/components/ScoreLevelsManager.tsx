@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScoreLevel } from '../types/okr';
 import { scoreLevelApi } from '../services/api';
 import { useLanguage } from '../i18n';
+import { useScoreLevels } from '../contexts/ScoreLevelContext';
 
 interface ScoreLevelsManagerProps {
   onUpdate?: () => void;
@@ -18,6 +19,7 @@ const COLOR_PALETTE = [
 
 const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => {
   const { t } = useLanguage();
+  const { scoreLevels: contextScoreLevels, refreshScoreLevels } = useScoreLevels();
   const [levels, setLevels] = useState<ScoreLevel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,21 +28,12 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
   const [tempScoreValue, setTempScoreValue] = useState<string>('');
   const [showColorPicker, setShowColorPicker] = useState<number | null>(null);
 
+  // Initialize local levels from context
   useEffect(() => {
-    fetchLevels();
-  }, []);
-
-  const fetchLevels = async () => {
-    try {
-      const response = await scoreLevelApi.getAll();
-      const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
-      setLevels(sorted);
-      setError(null);
-    } catch (err) {
-      setError(t.failedToLoadScoreLevels);
-      console.error(err);
+    if (contextScoreLevels.length > 0 && levels.length === 0) {
+      setLevels([...contextScoreLevels]);
     }
-  };
+  }, [contextScoreLevels]);
 
   const handleLevelChange = (index: number, field: keyof ScoreLevel, value: any) => {
     const updatedLevels = [...levels];
@@ -99,6 +92,8 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
       await scoreLevelApi.updateAll(sortedLevels);
       setLevels(sortedLevels);
       setHasChanges(false);
+      // Refresh the global context
+      await refreshScoreLevels();
       if (onUpdate) onUpdate();
       alert(t.scoreLevelsUpdated);
     } catch (err) {
@@ -117,7 +112,12 @@ const ScoreLevelsManager: React.FC<ScoreLevelsManagerProps> = ({ onUpdate }) => 
     setLoading(true);
     try {
       await scoreLevelApi.resetToDefaults();
-      await fetchLevels();
+      // Fetch fresh levels after reset
+      const response = await scoreLevelApi.getAll();
+      const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
+      setLevels(sorted);
+      // Refresh the global context
+      await refreshScoreLevels();
       setHasChanges(false);
       if (onUpdate) onUpdate();
       alert(t.scoreLevelsReset);

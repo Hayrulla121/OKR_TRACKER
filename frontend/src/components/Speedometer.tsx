@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ScoreResult, ScoreLevel } from '../types/okr';
-import { scoreLevelApi } from '../services/api';
+import React from 'react';
+import { ScoreResult } from '../types/okr';
 import { useLanguage } from '../i18n';
+import { useScoreLevels } from '../contexts/ScoreLevelContext';
 
 interface SpeedometerProps {
     score: ScoreResult;
@@ -19,27 +19,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({
     compact = false
 }) => {
     const { t } = useLanguage();
-    const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
-
-    useEffect(() => {
-        const fetchScoreLevels = async () => {
-            try {
-                const response = await scoreLevelApi.getAll();
-                const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
-                setScoreLevels(sorted);
-            } catch (error) {
-                console.error('Failed to load score levels for speedometer:', error);
-                setScoreLevels([
-                    { name: 'Below', scoreValue: 3.0, color: '#dc3545', displayOrder: 0 },
-                    { name: 'Meets', scoreValue: 4.25, color: '#ffc107', displayOrder: 1 },
-                    { name: 'Good', scoreValue: 4.5, color: '#5cb85c', displayOrder: 2 },
-                    { name: 'Very Good', scoreValue: 4.75, color: '#28a745', displayOrder: 3 },
-                    { name: 'Exceptional', scoreValue: 5.0, color: '#1e7b34', displayOrder: 4 },
-                ]);
-            }
-        };
-        fetchScoreLevels();
-    }, []);
+    const { scoreLevels } = useScoreLevels();
 
     const sizes = {
         sm: { width: 220, height: 150, radius: 65, strokeWidth: 16, fontSize: 20, titleSize: 'text-sm', labelFontSize: 10 },

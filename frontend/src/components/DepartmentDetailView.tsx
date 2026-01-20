@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Department } from '../types/okr';
 import { DepartmentScoreResult } from '../types/evaluation';
 import { departmentScoresApi } from '../services/api';
@@ -18,7 +18,25 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
     const [scores, setScores] = useState<DepartmentScoreResult | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Create a stable hash of KR actual values to detect real data changes
+    const krDataHash = useMemo(() => {
+        return department.objectives
+            .flatMap(obj => obj.keyResults)
+            .map(kr => `${kr.id}:${kr.actualValue}`)
+            .join(',');
+    }, [department.objectives]);
+
+    // Track the last fetched state to prevent duplicate requests
+    const lastFetchRef = React.useRef<string>('');
+
     const fetchScores = useCallback(async () => {
+        const fetchKey = `${department.id}-${krDataHash}-${refreshTrigger}`;
+        // Skip if we already fetched with this exact state
+        if (lastFetchRef.current === fetchKey) {
+            return;
+        }
+        lastFetchRef.current = fetchKey;
+
         setLoading(true);
         try {
             const response = await departmentScoresApi.getScores(department.id);
@@ -28,25 +46,12 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
         } finally {
             setLoading(false);
         }
-    }, [department.id]);
+    }, [department.id, krDataHash, refreshTrigger]);
 
-    // Refetch scores when department id changes, or when refreshTrigger changes,
-    // or when department objectives/keyResults change (detected via JSON comparison)
+    // Single useEffect that refetches when department id, data hash, or refreshTrigger changes
     useEffect(() => {
         fetchScores();
-    }, [department.id, refreshTrigger, fetchScores]);
-
-    // Also refetch when department data changes (e.g., actual values updated)
-    useEffect(() => {
-        // Create a hash of KR actual values to detect changes
-        const krActualValues = department.objectives
-            .flatMap(obj => obj.keyResults)
-            .map(kr => `${kr.id}:${kr.actualValue}`)
-            .join(',');
-
-        // Refetch when actual values change
-        fetchScores();
-    }, [department.objectives]);
+    }, [fetchScores]);
 
     const handleEvaluationSaved = () => {
         fetchScores();
@@ -77,10 +82,10 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-3">
             {/* Multi-Speedometer Display */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
+                <h2 className="text-lg font-bold text-gray-800 mb-2">
                     {department.name} - Performance Scores
                 </h2>
                 <MultiSpeedometerDisplay scores={scores} />
@@ -88,7 +93,7 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
 
             {/* Evaluation Panel - Only show to users who can evaluate */}
             {canEvaluate && (
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
                     <EvaluationPanel
                         targetType="DEPARTMENT"
                         targetId={department.id}
@@ -97,21 +102,17 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
                 </div>
             )}
 
-            {/* Department Info */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Department Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Department Info - Inline compact */}
+            <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
+                <div className="flex items-center gap-6 text-sm">
+                    <h3 className="text-sm font-bold text-gray-800">Department Info:</h3>
                     <div>
-                        <span className="text-gray-600">Name:</span>
-                        <span className="ml-2 font-semibold text-gray-800">{department.name}</span>
+                        <span className="text-gray-500">Objectives:</span>
+                        <span className="ml-1 font-semibold text-gray-800">{department.objectives.length}</span>
                     </div>
                     <div>
-                        <span className="text-gray-600">Objectives:</span>
-                        <span className="ml-2 font-semibold text-gray-800">{department.objectives.length}</span>
-                    </div>
-                    <div className="col-span-2">
-                        <span className="text-gray-600">Key Results:</span>
-                        <span className="ml-2 font-semibold text-gray-800">
+                        <span className="text-gray-500">Key Results:</span>
+                        <span className="ml-1 font-semibold text-gray-800">
                             {department.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)}
                         </span>
                     </div>

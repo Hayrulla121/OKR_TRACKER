@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Department, ScoreResult, ScoreLevel } from '../types/okr';
-import { departmentApi, demoApi, scoreLevelApi } from '../services/api';
+import { Department, ScoreResult } from '../types/okr';
+import { departmentApi, demoApi } from '../services/api';
 import Speedometer from '../components/Speedometer';
 import DepartmentCard from '../components/DepartmentCard';
 import SettingsModal from '../components/SettingsModal';
@@ -12,11 +12,13 @@ import LanguageSelector from '../components/LanguageSelector';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useScoreLevels } from '../contexts/ScoreLevelContext';
 
 function Dashboard() {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { scoreLevels } = useScoreLevels();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [modalDepartment, setModalDepartment] = useState<Department | null>(null);
@@ -24,16 +26,22 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
 
   const fetchDepartments = async () => {
     try {
       const response = await departmentApi.getAll();
       setDepartments(response.data);
+      // Only update selectedDepartment if it actually changed (compare by JSON)
       setSelectedDepartment(currentSelected => {
         if (currentSelected) {
           const updatedDept = response.data.find(d => d.id === currentSelected.id);
-          return updatedDept || currentSelected;
+          if (updatedDept) {
+            // Only update if data actually changed to prevent unnecessary re-renders
+            const currentJson = JSON.stringify(currentSelected);
+            const updatedJson = JSON.stringify(updatedDept);
+            return currentJson === updatedJson ? currentSelected : updatedDept;
+          }
+          return currentSelected;
         }
         return currentSelected;
       });
@@ -86,23 +94,12 @@ function Dashboard() {
     }
   };
 
-  const fetchScoreLevels = async () => {
-    try {
-      const response = await scoreLevelApi.getAll();
-      const sorted = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
-      setScoreLevels(sorted);
-    } catch (err) {
-      console.error('Failed to fetch score levels:', err);
-    }
-  };
-
   const refreshAllData = () => {
     fetchDepartments();
-    fetchScoreLevels();
   };
 
   useEffect(() => {
-    refreshAllData();
+    fetchDepartments();
   }, []);
 
   // Helper to get the best available score for a department (finalScore if available, otherwise OKR score)

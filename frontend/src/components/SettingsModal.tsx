@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Department, Objective, MetricType, ScoreLevel } from '../types/okr';
-import { departmentApi, objectiveApi, keyResultApi, scoreLevelApi } from '../services/api';
+import { Department, Objective, MetricType } from '../types/okr';
+import { departmentApi, objectiveApi, keyResultApi } from '../services/api';
 import ScoreLevelsManager from './ScoreLevelsManager';
 import { useLanguage } from '../i18n';
+import { useScoreLevels } from '../contexts/ScoreLevelContext';
 
 interface SettingsModalProps {
   departments: Department[];
@@ -14,6 +15,7 @@ type Tab = 'departments' | 'objectives' | 'keyResults' | 'scoreLevels';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onUpdate }) => {
   const { t } = useLanguage();
+  const { scoreLevels } = useScoreLevels();
   const [activeTab, setActiveTab] = useState<Tab>('departments');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,38 +35,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   const [newKrMetricType, setNewKrMetricType] = useState<MetricType>('HIGHER_BETTER');
   const [newKrUnit, setNewKrUnit] = useState('');
   const [newKrWeight, setNewKrWeight] = useState('100');
-  const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
   const [dynamicThresholds, setDynamicThresholds] = useState<Record<string, string>>({});
 
-  // Fetch score levels on component mount
+  // Initialize thresholds when score levels change
   useEffect(() => {
-    const fetchScoreLevels = async () => {
-      try {
-        const response = await scoreLevelApi.getAll();
-        const levels = response.data.sort((a, b) => a.scoreValue - b.scoreValue);
-        setScoreLevels(levels);
-        // Initialize thresholds based on levels
-        const initialThresholds: Record<string, string> = {};
-        levels.forEach((level, index) => {
-          const increment = 100 / (levels.length - 1 || 1);
-          initialThresholds[level.name] = (index * increment).toFixed(0);
-        });
-        setDynamicThresholds(initialThresholds);
-      } catch (err) {
-        console.error('Failed to fetch score levels:', err);
-        // Fallback to defaults
-        setScoreLevels([
-          { name: 'Below', scoreValue: 3.0, color: '#dc3545', displayOrder: 0 },
-          { name: 'Meets', scoreValue: 4.25, color: '#ffc107', displayOrder: 1 },
-          { name: 'Good', scoreValue: 4.5, color: '#5cb85c', displayOrder: 2 },
-          { name: 'Very Good', scoreValue: 4.75, color: '#28a745', displayOrder: 3 },
-          { name: 'Exceptional', scoreValue: 5.0, color: '#1e7b34', displayOrder: 4 },
-        ]);
-        setDynamicThresholds({ Below: '0', Meets: '25', Good: '50', 'Very Good': '75', Exceptional: '100' });
-      }
-    };
-    fetchScoreLevels();
-  }, []);
+    if (scoreLevels.length > 0) {
+      const initialThresholds: Record<string, string> = {};
+      scoreLevels.forEach((level, index) => {
+        const increment = 100 / (scoreLevels.length - 1 || 1);
+        initialThresholds[level.name] = (index * increment).toFixed(0);
+      });
+      setDynamicThresholds(initialThresholds);
+    }
+  }, [scoreLevels]);
 
   const handleCreateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();

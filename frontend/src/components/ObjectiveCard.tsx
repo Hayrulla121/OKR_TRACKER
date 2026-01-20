@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Objective, KeyResult, ScoreLevel } from '../types/okr';
-import { keyResultApi, scoreLevelApi } from '../services/api';
+import { Objective, KeyResult } from '../types/okr';
+import { keyResultApi } from '../services/api';
 import Speedometer from './Speedometer';
+import { useScoreLevels } from '../contexts/ScoreLevelContext';
 
 interface ObjectiveCardProps {
     objective: Objective;
     onUpdate: () => void;
-    scoreLevels?: ScoreLevel[];
 }
 
-const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, scoreLevels: propScoreLevels }) => {
+const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate }) => {
+    const { scoreLevels } = useScoreLevels();
     const [expanded, setExpanded] = useState(false);
     const defaultScore = { score: 0, level: 'below', color: '#d9534f', percentage: 0 };
 
@@ -25,21 +26,8 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, scor
     // Debounce timers
     const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
-    // Score levels state
-    const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>(propScoreLevels || []);
-
-    // Fetch score levels if not provided via props
-    useEffect(() => {
-        if (!propScoreLevels) {
-            scoreLevelApi.getAll()
-                .then(response => {
-                    setScoreLevels(response.data.sort((a, b) => a.scoreValue - b.scoreValue));
-                })
-                .catch(err => console.error('Failed to fetch score levels:', err));
-        } else {
-            setScoreLevels(propScoreLevels);
-        }
-    }, [propScoreLevels]);
+    // Track last saved values to avoid duplicate saves
+    const lastSavedValues = useRef<Record<string, string>>({});
 
     // Sync local values with props when objective changes
     useEffect(() => {
@@ -62,9 +50,17 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, scor
     }, []);
 
     const saveValue = useCallback(async (krId: string, krData: KeyResult, value: string, skipRefresh = false) => {
+        // Skip if we're already saving this value
+        if (lastSavedValues.current[krId] === value && !skipRefresh) {
+            // Value already saved, just trigger refresh
+            onUpdate();
+            return;
+        }
+
         setSavingIds(prev => new Set(prev).add(krId));
         try {
             await keyResultApi.update(krId, { ...krData, actualValue: value });
+            lastSavedValues.current[krId] = value; // Track saved value
             if (!skipRefresh) {
                 if (focusedIdRef.current === krId) {
                     focusedIdRef.current = null;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Department } from '../types/okr';
 import { DepartmentScoreResult } from '../types/evaluation';
 import { departmentScoresApi } from '../services/api';
@@ -10,14 +10,16 @@ import { Role } from '../types/auth';
 interface Props {
     department: Department;
     onUpdate?: () => void;
+    refreshTrigger?: number; // Optional prop to force refresh
 }
 
-const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate }) => {
+const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTrigger }) => {
     const { user } = useAuth();
     const [scores, setScores] = useState<DepartmentScoreResult | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchScores = async () => {
+    const fetchScores = useCallback(async () => {
+        setLoading(true);
         try {
             const response = await departmentScoresApi.getScores(department.id);
             setScores(response.data);
@@ -26,11 +28,25 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [department.id]);
 
+    // Refetch scores when department id changes, or when refreshTrigger changes,
+    // or when department objectives/keyResults change (detected via JSON comparison)
     useEffect(() => {
         fetchScores();
-    }, [department.id]);
+    }, [department.id, refreshTrigger, fetchScores]);
+
+    // Also refetch when department data changes (e.g., actual values updated)
+    useEffect(() => {
+        // Create a hash of KR actual values to detect changes
+        const krActualValues = department.objectives
+            .flatMap(obj => obj.keyResults)
+            .map(kr => `${kr.id}:${kr.actualValue}`)
+            .join(',');
+
+        // Refetch when actual values change
+        fetchScores();
+    }, [department.objectives]);
 
     const handleEvaluationSaved = () => {
         fetchScores();

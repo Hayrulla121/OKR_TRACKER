@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
     value?: 'A' | 'B' | 'C' | 'D';
@@ -8,12 +9,15 @@ interface Props {
 }
 
 const SpeedometerABCD: React.FC<Props> = ({ value, title, subtitle, size = 'md' }) => {
+    const { t } = useLanguage();
+
+    // D = Best (Outstanding), A = Lowest (Needs Improvement)
     const getColorForGrade = (grade: string) => {
         switch (grade) {
-            case 'A': return { bg: '#22c55e', text: '#ffffff' }; // green
-            case 'B': return { bg: '#3b82f6', text: '#ffffff' }; // blue
-            case 'C': return { bg: '#eab308', text: '#ffffff' }; // yellow
-            case 'D': return { bg: '#f97316', text: '#ffffff' }; // orange
+            case 'D': return { bg: '#22c55e', text: '#ffffff' }; // green - Outstanding (Best)
+            case 'C': return { bg: '#3b82f6', text: '#ffffff' }; // blue - Exceeds
+            case 'B': return { bg: '#eab308', text: '#ffffff' }; // yellow - Meets
+            case 'A': return { bg: '#f97316', text: '#ffffff' }; // orange - Needs Improvement (Lowest)
             default: return { bg: '#d1d5db', text: '#6b7280' }; // gray
         }
     };
@@ -26,13 +30,14 @@ const SpeedometerABCD: React.FC<Props> = ({ value, title, subtitle, size = 'md' 
         }
     };
 
+    // D = Best, A = Lowest (reversed scale)
     const getDescriptionForGrade = (grade: string) => {
         switch (grade) {
-            case 'A': return 'Excellent';
-            case 'B': return 'Good';
-            case 'C': return 'Satisfactory';
-            case 'D': return 'Needs Improvement';
-            default: return 'Not Evaluated';
+            case 'D': return t.gradeDLabel;      // 5.0 - Best
+            case 'C': return t.gradeCLabel;      // 4.75
+            case 'B': return t.gradeBLabel;      // 4.5
+            case 'A': return t.gradeALabel;      // 4.25 - Lowest
+            default: return t.notEvaluated;
         }
     };
 
@@ -83,10 +88,10 @@ const SpeedometerABCD: React.FC<Props> = ({ value, title, subtitle, size = 'md' 
                 )}
             </div>
 
-            {/* Legend */}
+            {/* Legend - D (Best) to A (Lowest) */}
             <div className="mt-3 text-center">
                 <div className="grid grid-cols-4 gap-1 text-xs">
-                    {['A', 'B', 'C', 'D'].map((grade) => {
+                    {['D', 'C', 'B', 'A'].map((grade) => {
                         const gradeColor = getColorForGrade(grade);
                         return (
                             <div

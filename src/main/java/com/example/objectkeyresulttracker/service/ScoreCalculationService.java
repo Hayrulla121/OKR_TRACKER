@@ -70,8 +70,28 @@ public class ScoreCalculationService {
         if (kr.getMetricType() == KeyResult.MetricType.QUALITATIVE) {
             return calculateQualitativeScore(kr.getActualValue());
         }
-        return calculateQuantitativeScore(
-                parseDouble(kr.getActualValue()),
+
+        String actualValueStr = kr.getActualValue();
+        if (actualValueStr == null || actualValueStr.trim().isEmpty()) {
+            actualValueStr = "0";
+        }
+
+        double actualValue;
+        try {
+            actualValue = parseDouble(actualValueStr);
+        } catch (NumberFormatException e) {
+            log.warn("Invalid actual value '{}' for KR '{}', defaulting to 0", actualValueStr, kr.getName());
+            actualValue = 0;
+        }
+
+        // Log calculation inputs for debugging
+        log.debug("Calculating score for KR '{}': actual={}, type={}, thresholds=[below={}, meets={}, good={}, veryGood={}, exceptional={}]",
+                kr.getName(), actualValue, kr.getMetricType(),
+                kr.getThresholdBelow(), kr.getThresholdMeets(), kr.getThresholdGood(),
+                kr.getThresholdVeryGood(), kr.getThresholdExceptional());
+
+        ScoreResult result = calculateQuantitativeScore(
+                actualValue,
                 kr.getMetricType(),
                 kr.getThresholdBelow(),
                 kr.getThresholdMeets(),
@@ -79,6 +99,10 @@ public class ScoreCalculationService {
                 kr.getThresholdVeryGood(),
                 kr.getThresholdExceptional()
         );
+
+        log.debug("KR '{}' score result: score={}, level={}", kr.getName(), result.getScore(), result.getLevel());
+
+        return result;
     }
 
     private ScoreResult calculateQualitativeScore(String grade) {
@@ -98,6 +122,15 @@ public class ScoreCalculationService {
     private ScoreResult calculateQuantitativeScore(
             double actual, KeyResult.MetricType type,
             Double below, Double meets, Double good, Double veryGood, Double exceptional) {
+
+        // Handle null threshold values with sensible defaults
+        // For LOWER_BETTER: thresholds should be in descending order (below > meets > good > veryGood > exceptional)
+        // For HIGHER_BETTER: thresholds should be in ascending order (below < meets < good < veryGood < exceptional)
+        if (below == null) below = (type == KeyResult.MetricType.LOWER_BETTER) ? 100.0 : 0.0;
+        if (meets == null) meets = (type == KeyResult.MetricType.LOWER_BETTER) ? 75.0 : 25.0;
+        if (good == null) good = 50.0;
+        if (veryGood == null) veryGood = (type == KeyResult.MetricType.LOWER_BETTER) ? 25.0 : 75.0;
+        if (exceptional == null) exceptional = (type == KeyResult.MetricType.LOWER_BETTER) ? 0.0 : 100.0;
 
         // Get dynamic score levels from database (cached)
         List<ScoreLevel> scoreLevels = getScoreLevels();
@@ -509,13 +542,14 @@ public class ScoreCalculationService {
 
     /**
      * Convert HR letter grade to numeric score
+     * D = 5.0 (Outstanding), C = 4.75 (Exceeds), B = 4.5 (Meets), A = 4.25 (Needs Improvement)
      */
     private Double convertHrLetterToNumeric(String letter) {
         return switch(letter) {
-            case "A" -> 5.0;
-            case "B" -> 4.75;
-            case "C" -> 4.5;
-            case "D" -> 4.25;
+            case "D" -> 5.0;
+            case "C" -> 4.75;
+            case "B" -> 4.5;
+            case "A" -> 4.25;
             default -> null;
         };
     }

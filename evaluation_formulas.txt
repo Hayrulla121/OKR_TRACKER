@@ -1,0 +1,113 @@
+================================================================================
+                    OKR TRACKER - EVALUATION FORMULAS & SCORING
+================================================================================
+
+================================================================================
+IMPORTANT: THRESHOLD ENTRY FOR "LOWER IS BETTER" METRICS
+================================================================================
+
+For "Lower is Better" metrics (like Bug Count, Error Rate, etc.), you must enter
+threshold values in DESCENDING order - highest value first, lowest last:
+
+Example for "Bug Count" (Lower is Better):
+  - Below threshold:       8  (WORST - most bugs, lowest score 3.0)
+  - Meets threshold:       6  (gets score 4.25)
+  - Good threshold:        4  (gets score 4.5)
+  - Very Good threshold:   2  (gets score 4.75)
+  - Exceptional threshold: 0  (BEST - zero bugs, highest score 5.0)
+
+COMMON MISTAKE: Don't enter 0 for "Below" threshold! For "Lower is Better",
+the "Below" field should have the HIGHEST number (worst case scenario).
+================================================================================
+
+--------------------------------------------------------------------------------
+FINAL SCORE CALCULATION
+--------------------------------------------------------------------------------
+
+Final Combined Score = (Automatic OKR Score × 60%) + (Director Score × 20%) + (HR Score × 20%)
+
+Example:
+  - Automatic OKR Score: 4.5
+  - Director Rating: 4 stars (4.8125)
+  - HR Grade: C (4.75)
+
+  Final Score = (4.5 × 0.60) + (4.8125 × 0.20) + (4.75 × 0.20)
+              = 2.7 + 0.9625 + 0.95
+              = 4.6125
+
+--------------------------------------------------------------------------------
+DIRECTOR EVALUATION (20% of Final Score)
+--------------------------------------------------------------------------------
+
+Rating Scale: 1-5 Stars
+Conversion Formula: numeric = 4.25 + (stars - 1) × 0.1875
+
+  Stars    Numeric Value    Meaning
+  -----    -------------    -------
+  1 star       4.25         Needs Improvement
+  2 stars      4.4375       Below Expectations
+  3 stars      4.625        Meets Expectations
+  4 stars      4.8125       Exceeds Expectations
+  5 stars      5.0          Outstanding
+
+--------------------------------------------------------------------------------
+HR EVALUATION (20% of Final Score)
+--------------------------------------------------------------------------------
+
+Rating Scale: Letter Grades (D, C, B, A)
+Note: D is the HIGHEST score, A is the LOWEST (reversed scale)
+
+  Grade    Numeric Value    Meaning
+  -----    -------------    -------
+  D            5.0          Outstanding Performance (Best)
+  C            4.75         Exceeds Expectations
+  B            4.5          Meets Expectations
+  A            4.25         Needs Improvement (Lowest)
+
+IMPORTANT: Grade D represents the highest performance level.
+
+--------------------------------------------------------------------------------
+BUSINESS BLOCK EVALUATION (Informational Only - NOT in Final Score)
+--------------------------------------------------------------------------------
+
+Rating Scale: 1-5 Numeric
+
+  Rating    Meaning
+  ------    -------
+  1         Needs Improvement
+  2         Fair
+  3         Good
+  4         Very Good
+  5         Exceptional
+
+Note: Business Block evaluations are displayed separately and do NOT
+contribute to the weighted final score calculation.
+
+--------------------------------------------------------------------------------
+AUTOMATIC OKR SCORE (60% of Final Score)
+--------------------------------------------------------------------------------
+
+Calculated automatically based on Key Results performance.
+Score Range: 3.0 - 5.0
+
+  Score Range       Level           Color
+  -----------       -----           -----
+  5.00              Exceptional     Green
+  4.75 - 4.99       Very Good       Dark Green
+  4.50 - 4.74       Good            Green
+  4.25 - 4.49       Meets           Orange
+  3.00 - 4.24       Below           Red
+
+--------------------------------------------------------------------------------
+SCORE LEVEL MAPPING (Final Combined Score)
+--------------------------------------------------------------------------------
+
+  Final Score       Level              Color Code
+  -----------       -----              ----------
+  5.00              exceptional        #22c55e (Green)
+  4.75 - 4.99       very_good          #16a34a (Dark Green)
+  4.50 - 4.74       good               #22c55e (Green)
+  4.25 - 4.49       meets              #f97316 (Orange)
+  3.00 - 4.24       below              #ef4444 (Red)
+
+================================================================================

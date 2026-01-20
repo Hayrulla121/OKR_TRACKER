@@ -142,6 +142,54 @@ export interface Translations {
   english: string;
   russian: string;
   uzbek: string;
+
+  // Evaluations
+  directorEvaluation: string;
+  hrEvaluation: string;
+  businessBlockEvaluation: string;
+  automaticOkrScore: string;
+  finalCombinedScore: string;
+  notEvaluated: string;
+  awaitingDirectorRating: string;
+  awaitingHrRating: string;
+  awaitingBusinessRating: string;
+  separateDisplay: string;
+  notIncludedInWeightedScore: string;
+  weightedFormula: string;
+  finalScoreNotAvailable: string;
+  requiresAllEvaluations: string;
+  basedOnKeyResultThresholds: string;
+  performanceGrade: string;
+  starRating: string;
+  ratingGuide: string;
+  commentOptional: string;
+  addYourComments: string;
+  submitEvaluation: string;
+  updateEvaluation: string;
+  evaluationSavedSuccessfully: string;
+  failedToSaveEvaluation: string;
+  pleaseSelectRating: string;
+
+  // HR Grade Labels (D=Best, A=Lowest)
+  gradeD: string;
+  gradeDLabel: string;
+  gradeDDescription: string;
+  gradeC: string;
+  gradeCLabel: string;
+  gradeCDescription: string;
+  gradeB: string;
+  gradeBLabel: string;
+  gradeBDescription: string;
+  gradeA: string;
+  gradeALabel: string;
+  gradeADescription: string;
+
+  // Director Star Labels
+  star1Label: string;
+  star2Label: string;
+  star3Label: string;
+  star4Label: string;
+  star5Label: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -287,6 +335,54 @@ export const translations: Record<Language, Translations> = {
     english: 'English',
     russian: 'Russian',
     uzbek: 'Uzbek',
+
+    // Evaluations
+    directorEvaluation: 'Director Evaluation',
+    hrEvaluation: 'HR Evaluation',
+    businessBlockEvaluation: 'Business Block',
+    automaticOkrScore: 'Automatic OKR Score',
+    finalCombinedScore: 'Final Combined Score',
+    notEvaluated: 'Not Evaluated',
+    awaitingDirectorRating: 'Awaiting director rating',
+    awaitingHrRating: 'Awaiting HR rating',
+    awaitingBusinessRating: 'Awaiting business rating',
+    separateDisplay: 'Separate Display',
+    notIncludedInWeightedScore: 'Not included in weighted score',
+    weightedFormula: 'Weighted Formula: (OKR × 60%) + (Director × 20%) + (HR × 20%)',
+    finalScoreNotAvailable: 'Final Score Not Available',
+    requiresAllEvaluations: 'Requires automatic OKR score + Director evaluation + HR evaluation',
+    basedOnKeyResultThresholds: 'Based on key result thresholds',
+    performanceGrade: 'Performance Grade (A-D)',
+    starRating: 'Rating (1-5 stars)',
+    ratingGuide: 'Rating Guide:',
+    commentOptional: 'Comment (optional)',
+    addYourComments: 'Add your evaluation comments...',
+    submitEvaluation: 'Submit Evaluation',
+    updateEvaluation: 'Update Evaluation',
+    evaluationSavedSuccessfully: 'Evaluation saved successfully!',
+    failedToSaveEvaluation: 'Failed to save evaluation',
+    pleaseSelectRating: 'Please select a rating',
+
+    // HR Grade Labels (D=Best, A=Lowest)
+    gradeD: 'D',
+    gradeDLabel: 'Outstanding',
+    gradeDDescription: 'Outstanding performance',
+    gradeC: 'C',
+    gradeCLabel: 'Exceeds',
+    gradeCDescription: 'Exceeds expectations',
+    gradeB: 'B',
+    gradeBLabel: 'Meets',
+    gradeBDescription: 'Meets expectations',
+    gradeA: 'A',
+    gradeALabel: 'Needs Improvement',
+    gradeADescription: 'Needs improvement',
+
+    // Director Star Labels
+    star1Label: 'Needs Improvement',
+    star2Label: 'Below Expectations',
+    star3Label: 'Meets Expectations',
+    star4Label: 'Exceeds Expectations',
+    star5Label: 'Outstanding',
   },
 
   ru: {
@@ -431,6 +527,54 @@ export const translations: Record<Language, Translations> = {
     english: 'Английский',
     russian: 'Русский',
     uzbek: 'Узбекский',
+
+    // Evaluations
+    directorEvaluation: 'Оценка директора',
+    hrEvaluation: 'Оценка HR',
+    businessBlockEvaluation: 'Бизнес-блок',
+    automaticOkrScore: 'Автоматическая оценка OKR',
+    finalCombinedScore: 'Итоговая комбинированная оценка',
+    notEvaluated: 'Не оценено',
+    awaitingDirectorRating: 'Ожидание оценки директора',
+    awaitingHrRating: 'Ожидание оценки HR',
+    awaitingBusinessRating: 'Ожидание оценки бизнес-блока',
+    separateDisplay: 'Отдельное отображение',
+    notIncludedInWeightedScore: 'Не включено в взвешенную оценку',
+    weightedFormula: 'Формула: (OKR × 60%) + (Директор × 20%) + (HR × 20%)',
+    finalScoreNotAvailable: 'Итоговая оценка недоступна',
+    requiresAllEvaluations: 'Требуется автоматическая оценка OKR + оценка директора + оценка HR',
+    basedOnKeyResultThresholds: 'На основе пороговых значений ключевых результатов',
+    performanceGrade: 'Оценка эффективности (A-D)',
+    starRating: 'Рейтинг (1-5 звёзд)',
+    ratingGuide: 'Руководство по оценке:',
+    commentOptional: 'Комментарий (необязательно)',
+    addYourComments: 'Добавьте ваши комментарии...',
+    submitEvaluation: 'Отправить оценку',
+    updateEvaluation: 'Обновить оценку',
+    evaluationSavedSuccessfully: 'Оценка успешно сохранена!',
+    failedToSaveEvaluation: 'Не удалось сохранить оценку',
+    pleaseSelectRating: 'Пожалуйста, выберите оценку',
+
+    // HR Grade Labels (D=Best, A=Lowest)
+    gradeD: 'D',
+    gradeDLabel: 'Отлично',
+    gradeDDescription: 'Отличная работа',
+    gradeC: 'C',
+    gradeCLabel: 'Превышает',
+    gradeCDescription: 'Превышает ожидания',
+    gradeB: 'B',
+    gradeBLabel: 'Соответствует',
+    gradeBDescription: 'Соответствует ожиданиям',
+    gradeA: 'A',
+    gradeALabel: 'Требует улучшения',
+    gradeADescription: 'Требует улучшения',
+
+    // Director Star Labels
+    star1Label: 'Требует улучшения',
+    star2Label: 'Ниже ожиданий',
+    star3Label: 'Соответствует ожиданиям',
+    star4Label: 'Превышает ожидания',
+    star5Label: 'Отлично',
   },
 
   uz: {
@@ -575,5 +719,53 @@ export const translations: Record<Language, Translations> = {
     english: 'Inglizcha',
     russian: 'Ruscha',
     uzbek: "O'zbekcha",
+
+    // Evaluations
+    directorEvaluation: 'Direktor bahosi',
+    hrEvaluation: 'HR bahosi',
+    businessBlockEvaluation: 'Biznes blok',
+    automaticOkrScore: 'Avtomatik OKR bahosi',
+    finalCombinedScore: 'Yakuniy umumiy baho',
+    notEvaluated: 'Baholanmagan',
+    awaitingDirectorRating: 'Direktor bahosini kutish',
+    awaitingHrRating: 'HR bahosini kutish',
+    awaitingBusinessRating: 'Biznes bahosini kutish',
+    separateDisplay: 'Alohida ko\'rsatish',
+    notIncludedInWeightedScore: 'Vaznli bahoga kiritilmagan',
+    weightedFormula: 'Formula: (OKR × 60%) + (Direktor × 20%) + (HR × 20%)',
+    finalScoreNotAvailable: 'Yakuniy baho mavjud emas',
+    requiresAllEvaluations: 'Avtomatik OKR bahosi + Direktor bahosi + HR bahosi talab qilinadi',
+    basedOnKeyResultThresholds: 'Asosiy natijalar chegaralariga asoslangan',
+    performanceGrade: 'Samaradorlik bahosi (A-D)',
+    starRating: 'Reyting (1-5 yulduz)',
+    ratingGuide: 'Baholash ko\'rsatmasi:',
+    commentOptional: 'Izoh (ixtiyoriy)',
+    addYourComments: 'Izohlaringizni qo\'shing...',
+    submitEvaluation: 'Bahoni yuborish',
+    updateEvaluation: 'Bahoni yangilash',
+    evaluationSavedSuccessfully: 'Baho muvaffaqiyatli saqlandi!',
+    failedToSaveEvaluation: 'Bahoni saqlab bo\'lmadi',
+    pleaseSelectRating: 'Iltimos, baho tanlang',
+
+    // HR Grade Labels (D=Best, A=Lowest)
+    gradeD: 'D',
+    gradeDLabel: 'A\'lo',
+    gradeDDescription: 'A\'lo ishlash',
+    gradeC: 'C',
+    gradeCLabel: 'Oshib ketadi',
+    gradeCDescription: 'Kutilganidan oshib ketadi',
+    gradeB: 'B',
+    gradeBLabel: 'Mos keladi',
+    gradeBDescription: 'Kutilganlarga mos keladi',
+    gradeA: 'A',
+    gradeALabel: 'Yaxshilash kerak',
+    gradeADescription: 'Yaxshilash talab qilinadi',
+
+    // Director Star Labels
+    star1Label: 'Yaxshilash kerak',
+    star2Label: 'Kutilganidan past',
+    star3Label: 'Kutilganlarga mos',
+    star4Label: 'Kutilganidan yuqori',
+    star5Label: 'A\'lo',
   }
 };

@@ -237,6 +237,7 @@ public class OkrService {
                 .build();
     }
 
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
     @Transactional
     public List<DepartmentDTO> loadDemoData() {
         try {

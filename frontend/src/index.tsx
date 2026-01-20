@@ -4,15 +4,21 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { LanguageProvider } from './i18n';
+import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter } from 'react-router-dom';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <LanguageProvider>
-      <App />
-    </LanguageProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
 

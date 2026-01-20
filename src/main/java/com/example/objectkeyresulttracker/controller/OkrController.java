@@ -51,6 +51,11 @@ public class OkrController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/departments/{id}/scores")
+    public ResponseEntity<com.example.objectkeyresulttracker.dto.DepartmentScoreResult> getDepartmentScores(@PathVariable String id) {
+        return ResponseEntity.ok(okrService.getDepartmentScoreWithEvaluations(id));
+    }
+
     // ==================== OBJECTIVES ====================
 
     @PostMapping("/departments/{departmentId}/objectives")

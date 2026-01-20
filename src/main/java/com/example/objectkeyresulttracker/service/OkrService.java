@@ -32,6 +32,12 @@ public class OkrService {
     private KeyResultRepository keyResultRepository;
     @Autowired
     private ScoreCalculationService scoreService;
+    @Autowired
+    private com.example.objectkeyresulttracker.repository.UserRepository userRepository;
+    @Autowired
+    private com.example.objectkeyresulttracker.repository.EvaluationRepository evaluationRepository;
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -78,6 +84,17 @@ public class OkrService {
     @Transactional
     public void deleteDepartment(String id) {
         departmentRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public com.example.objectkeyresulttracker.dto.DepartmentScoreResult getDepartmentScoreWithEvaluations(String id) {
+        try {
+            Department dept = departmentRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Department not found: " + id));
+            return scoreService.calculateDepartmentScoreWithEvaluations(id, dept.getObjectives());
+        } finally {
+            scoreService.clearCache();
+        }
     }
 
     // ==================== OBJECTIVES ====================
@@ -224,11 +241,91 @@ public class OkrService {
     public List<DepartmentDTO> loadDemoData() {
         try {
             // Clear existing data
+            evaluationRepository.deleteAll();
+            userRepository.deleteAll();
             departmentRepository.deleteAll();
 
             // Create PMO department with demo objectives
             Department pmoDept = new Department();
             pmoDept.setName("PMO - Project Management Office");
+            pmoDept = departmentRepository.save(pmoDept);
+
+            // ==================== CREATE DEMO USERS ====================
+
+            // 1. Create Admin user
+            com.example.objectkeyresulttracker.entity.User admin = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("admin")
+                    .email("admin@okr-tracker.com")
+                    .password(passwordEncoder.encode("admin123"))
+                    .fullName("System Administrator")
+                    .role(com.example.objectkeyresulttracker.entity.Role.ADMIN)
+                    .build();
+            admin = userRepository.save(admin);
+
+            // 2. Create Director user
+            com.example.objectkeyresulttracker.entity.User director = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("director")
+                    .email("director@okr-tracker.com")
+                    .password(passwordEncoder.encode("director123"))
+                    .fullName("Алишер Каримов")
+                    .role(com.example.objectkeyresulttracker.entity.Role.DIRECTOR)
+                    .build();
+            director = userRepository.save(director);
+
+            // 3. Create HR user
+            com.example.objectkeyresulttracker.entity.User hr = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("hr")
+                    .email("hr@okr-tracker.com")
+                    .password(passwordEncoder.encode("hr123"))
+                    .fullName("Гульнора Азимова")
+                    .role(com.example.objectkeyresulttracker.entity.Role.HR)
+                    .build();
+            hr = userRepository.save(hr);
+
+            // 4. Create Business Block user
+            com.example.objectkeyresulttracker.entity.User businessBlock = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("business")
+                    .email("business@okr-tracker.com")
+                    .password(passwordEncoder.encode("business123"))
+                    .fullName("Шерзод Рахимов")
+                    .role(com.example.objectkeyresulttracker.entity.Role.BUSINESS_BLOCK)
+                    .build();
+            businessBlock = userRepository.save(businessBlock);
+
+            // 5. Create Department Leader for PMO
+            com.example.objectkeyresulttracker.entity.User deptLeader = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("pmo_leader")
+                    .email("pmo.leader@okr-tracker.com")
+                    .password(passwordEncoder.encode("leader123"))
+                    .fullName("Умида Усманова")
+                    .role(com.example.objectkeyresulttracker.entity.Role.DEPARTMENT_LEADER)
+                    .department(pmoDept)
+                    .build();
+            deptLeader = userRepository.save(deptLeader);
+
+            // 6. Create Employee users
+            com.example.objectkeyresulttracker.entity.User employee1 = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("employee1")
+                    .email("employee1@okr-tracker.com")
+                    .password(passwordEncoder.encode("employee123"))
+                    .fullName("Бахром Иброхимов")
+                    .role(com.example.objectkeyresulttracker.entity.Role.EMPLOYEE)
+                    .department(pmoDept)
+                    .build();
+            employee1 = userRepository.save(employee1);
+
+            com.example.objectkeyresulttracker.entity.User employee2 = com.example.objectkeyresulttracker.entity.User.builder()
+                    .username("employee2")
+                    .email("employee2@okr-tracker.com")
+                    .password(passwordEncoder.encode("employee123"))
+                    .fullName("Дилноза Турсунова")
+                    .role(com.example.objectkeyresulttracker.entity.Role.EMPLOYEE)
+                    .department(pmoDept)
+                    .build();
+            employee2 = userRepository.save(employee2);
+
+            // Link department leader to PMO department
+            pmoDept.setDepartmentLeader(deptLeader);
             pmoDept = departmentRepository.save(pmoDept);
 
         // Цель 1: Обеспечить своевременную реализацию проектов (20%)
@@ -282,9 +379,67 @@ public class OkrService {
                         new DemoKR("KR6.3 Процент изменений плана проекта после планирования", KeyResult.MetricType.LOWER_BETTER, "%", 30, 20.0, 15.0, 10.0, 5.0, 0.0, "0")
                 });
 
+            // ==================== CREATE DEMO EVALUATIONS ====================
+
+            // Director evaluation for PMO department (5 stars = 5.0)
+            com.example.objectkeyresulttracker.entity.Evaluation directorEval = com.example.objectkeyresulttracker.entity.Evaluation.builder()
+                    .evaluator(director)
+                    .evaluatorType(com.example.objectkeyresulttracker.entity.EvaluatorType.DIRECTOR)
+                    .targetType("DEPARTMENT")
+                    .targetId(java.util.UUID.fromString(pmoDept.getId()))
+                    .numericRating(5.0) // 5 stars = 5.0
+                    .comment("Отличная работа! Команда показывает высокие результаты.")
+                    .status(com.example.objectkeyresulttracker.entity.EvaluationStatus.SUBMITTED)
+                    .build();
+            evaluationRepository.save(directorEval);
+
+            // HR evaluation for PMO department (A grade)
+            com.example.objectkeyresulttracker.entity.Evaluation hrEval = com.example.objectkeyresulttracker.entity.Evaluation.builder()
+                    .evaluator(hr)
+                    .evaluatorType(com.example.objectkeyresulttracker.entity.EvaluatorType.HR)
+                    .targetType("DEPARTMENT")
+                    .targetId(java.util.UUID.fromString(pmoDept.getId()))
+                    .letterRating("A")
+                    .comment("Сотрудники активно развиваются, хорошая командная работа.")
+                    .status(com.example.objectkeyresulttracker.entity.EvaluationStatus.SUBMITTED)
+                    .build();
+            evaluationRepository.save(hrEval);
+
+            // Business Block evaluation for PMO department (5 out of 5)
+            com.example.objectkeyresulttracker.entity.Evaluation businessEval = com.example.objectkeyresulttracker.entity.Evaluation.builder()
+                    .evaluator(businessBlock)
+                    .evaluatorType(com.example.objectkeyresulttracker.entity.EvaluatorType.BUSINESS_BLOCK)
+                    .targetType("DEPARTMENT")
+                    .targetId(java.util.UUID.fromString(pmoDept.getId()))
+                    .numericRating(5.0)
+                    .comment("Департамент эффективно поддерживает бизнес-цели банка.")
+                    .status(com.example.objectkeyresulttracker.entity.EvaluationStatus.SUBMITTED)
+                    .build();
+            evaluationRepository.save(businessEval);
+
             // Flush to ensure all data is persisted before fetching
             entityManager.flush();
             entityManager.clear(); // Clear the persistence context to force a fresh fetch
+
+            System.out.println("=".repeat(80));
+            System.out.println("DEMO DATA LOADED SUCCESSFULLY!");
+            System.out.println("=".repeat(80));
+            System.out.println("\nDemo Users Created:");
+            System.out.println("  1. Admin:          username='admin'      password='admin123'");
+            System.out.println("  2. Director:       username='director'   password='director123'");
+            System.out.println("  3. HR:             username='hr'         password='hr123'");
+            System.out.println("  4. Business Block: username='business'   password='business123'");
+            System.out.println("  5. Dept Leader:    username='pmo_leader' password='leader123'");
+            System.out.println("  6. Employee 1:     username='employee1'  password='employee123'");
+            System.out.println("  7. Employee 2:     username='employee2'  password='employee123'");
+            System.out.println("\nDemo Evaluations Created:");
+            System.out.println("  - Director rated PMO: 5 stars (5.0)");
+            System.out.println("  - HR rated PMO: Grade A (5.0)");
+            System.out.println("  - Business Block rated PMO: 5/5 (5.0)");
+            System.out.println("\nDepartment Score Calculation:");
+            System.out.println("  - Automatic OKR Score: Will be calculated from Key Results");
+            System.out.println("  - Final Score: (Auto × 60%) + (Director × 20%) + (HR × 20%)");
+            System.out.println("=".repeat(80));
 
             return getAllDepartments();
         } finally {

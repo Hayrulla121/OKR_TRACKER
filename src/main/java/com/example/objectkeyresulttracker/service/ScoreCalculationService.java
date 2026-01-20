@@ -1,9 +1,11 @@
 package com.example.objectkeyresulttracker.service;
 import com.example.objectkeyresulttracker.dto.*;
 import com.example.objectkeyresulttracker.entity.*;
+import com.example.objectkeyresulttracker.repository.EvaluationRepository;
 import com.example.objectkeyresulttracker.repository.ScoreLevelRepository;
 import org.springframework.stereotype.Service;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.Double.parseDouble;
@@ -12,12 +14,14 @@ import static java.lang.Double.parseDouble;
 public class ScoreCalculationService {
 
     private final ScoreLevelRepository scoreLevelRepository;
+    private final EvaluationRepository evaluationRepository;
 
     // Thread-local cache to avoid N+1 queries within a single request
     private final ThreadLocal<List<ScoreLevel>> scoreLevelCache = new ThreadLocal<>();
 
-    public ScoreCalculationService(ScoreLevelRepository scoreLevelRepository) {
+    public ScoreCalculationService(ScoreLevelRepository scoreLevelRepository, EvaluationRepository evaluationRepository) {
         this.scoreLevelRepository = scoreLevelRepository;
+        this.evaluationRepository = evaluationRepository;
     }
 
     /**
@@ -408,4 +412,101 @@ public class ScoreCalculationService {
 
     record LevelInfo(double min, double max, String color) {}
     record QualitativeGrade(double score, String level) {}
+
+    // ============= NEW METHODS FOR MULTI-SOURCE EVALUATION =============
+
+    /**
+     * Calculate department score with multi-source evaluations
+     * Combines automatic OKR score (60%) with Director (20%) and HR (20%) evaluations
+     */
+    public DepartmentScoreResult calculateDepartmentScoreWithEvaluations(String departmentId, List<Objective> objectives) {
+        // 1. Calculate automatic OKR score (existing logic) - 60% weight
+        ScoreResult autoScoreResult = calculateDepartmentScore(objectives);
+        Double autoScore = autoScoreResult.getScore();
+
+        // 2. Get evaluations for this department
+        Map<EvaluatorType, Evaluation> evals = getEvaluationsForTarget("DEPARTMENT", UUID.fromString(departmentId));
+
+        // 3. Extract Director evaluation
+        Evaluation directorEval = evals.get(EvaluatorType.DIRECTOR);
+        Double directorScore = directorEval != null ? directorEval.getNumericRating() : null;
+        Integer directorStars = directorScore != null ? convertNumericToStars(directorScore) : null;
+
+        // 4. Extract HR evaluation
+        Evaluation hrEval = evals.get(EvaluatorType.HR);
+        String hrLetter = hrEval != null ? hrEval.getLetterRating() : null;
+        Double hrScore = hrLetter != null ? convertHrLetterToNumeric(hrLetter) : null;
+
+        // 5. Extract Business Block evaluation
+        Evaluation businessBlockEval = evals.get(EvaluatorType.BUSINESS_BLOCK);
+        Double businessBlockScore = businessBlockEval != null ? businessBlockEval.getNumericRating() : null;
+
+        // 6. Calculate weighted final score
+        Double finalScore = null;
+        if (autoScore != null && directorScore != null && hrScore != null) {
+            finalScore = (autoScore * 0.60) + (directorScore * 0.20) + (hrScore * 0.20);
+            finalScore = Math.round(finalScore * 100.0) / 100.0;
+        }
+
+        // 7. Map final score to level and color
+        String scoreLevel = finalScore != null ? getLevelForScore(finalScore) : autoScoreResult.getLevel();
+        String color = getColorForLevel(scoreLevel);
+
+        return DepartmentScoreResult.builder()
+                .automaticOkrScore(autoScore)
+                .automaticOkrPercentage(autoScoreResult.getPercentage())
+                .directorEvaluation(directorScore)
+                .directorStars(directorStars)
+                .hrEvaluationLetter(hrLetter)
+                .hrEvaluationNumeric(hrScore)
+                .businessBlockEvaluation(businessBlockScore)
+                .finalCombinedScore(finalScore)
+                .finalPercentage(finalScore != null ? scoreToPercentage(finalScore) : null)
+                .scoreLevel(scoreLevel)
+                .color(color)
+                .hasDirectorEvaluation(directorScore != null)
+                .hasHrEvaluation(hrScore != null)
+                .hasBusinessBlockEvaluation(businessBlockScore != null)
+                .build();
+    }
+
+    /**
+     * Get submitted evaluations for a target, grouped by evaluator type
+     */
+    private Map<EvaluatorType, Evaluation> getEvaluationsForTarget(String targetType, UUID targetId) {
+        List<Evaluation> evals = evaluationRepository.findByTargetTypeAndTargetIdAndStatus(
+                targetType, targetId, EvaluationStatus.SUBMITTED
+        );
+        return evals.stream()
+                .collect(Collectors.toMap(
+                        Evaluation::getEvaluatorType,
+                        Function.identity(),
+                        (e1, e2) -> e1 // Keep first if duplicates (shouldn't happen due to validation)
+                ));
+    }
+
+    /**
+     * Convert HR letter grade to numeric score
+     */
+    private Double convertHrLetterToNumeric(String letter) {
+        return switch(letter) {
+            case "A" -> 5.0;
+            case "B" -> 4.75;
+            case "C" -> 4.5;
+            case "D" -> 4.25;
+            default -> null;
+        };
+    }
+
+    /**
+     * Convert Director numeric score (4.25-5.0) back to star rating (1-5) for UI display
+     */
+    private Integer convertNumericToStars(Double numericScore) {
+        if (numericScore == null || numericScore < 4.25 || numericScore > 5.0) {
+            return null;
+        }
+        // Reverse formula: stars = 1 + (numericScore - 4.25) / 0.1875
+        double stars = 1 + (numericScore - 4.25) / 0.1875;
+        return (int) Math.round(stars);
+    }
 }

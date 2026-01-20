@@ -22,6 +22,13 @@ public class Department {
     @Builder.Default
     private List<Objective> objectives = new ArrayList<>();
 
+    /**
+     * Department leader (user with DEPARTMENT_LEADER role)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "leader_id")
+    private User departmentLeader;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

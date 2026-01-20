@@ -100,6 +100,11 @@ const MultiSpeedometerDisplay: React.FC<Props> = ({ scores }) => {
                                     {scores.directorStars} {scores.directorStars === 1 ? 'star' : 'stars'} rating
                                 </p>
                             )}
+                            {scores.directorComment && (
+                                <div className="mt-2 p-2 bg-purple-50 rounded-lg">
+                                    <p className="text-xs text-purple-700 italic">"{scores.directorComment}"</p>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-48">
@@ -121,12 +126,19 @@ const MultiSpeedometerDisplay: React.FC<Props> = ({ scores }) => {
                         <span className="text-blue-600 font-bold text-sm">20% Weight</span>
                     </div>
                     {scores.hasHrEvaluation ? (
-                        <SpeedometerABCD
-                            value={scores.hrEvaluationLetter as 'A' | 'B' | 'C' | 'D'}
-                            title="HR Evaluation"
-                            subtitle="Performance grade"
-                            size="md"
-                        />
+                        <>
+                            <SpeedometerABCD
+                                value={scores.hrEvaluationLetter as 'A' | 'B' | 'C' | 'D'}
+                                title="HR Evaluation"
+                                subtitle="Performance grade"
+                                size="md"
+                            />
+                            {scores.hrComment && (
+                                <div className="mt-2 p-2 bg-blue-50 rounded-lg">
+                                    <p className="text-xs text-blue-700 italic">"{scores.hrComment}"</p>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-48">
                             <svg className="w-16 h-16 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,6 +175,11 @@ const MultiSpeedometerDisplay: React.FC<Props> = ({ scores }) => {
                             <p className="text-center text-xs text-gray-500">
                                 Not included in weighted score
                             </p>
+                            {scores.businessBlockComment && (
+                                <div className="mt-2 p-2 bg-teal-50 rounded-lg">
+                                    <p className="text-xs text-teal-700 italic">"{scores.businessBlockComment}"</p>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-48">

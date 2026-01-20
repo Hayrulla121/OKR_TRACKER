@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Role } from '../../types/auth';
-import { Evaluation } from '../../types/evaluation';
+import { Evaluation, EvaluatorType } from '../../types/evaluation';
 import { evaluationApi } from '../../services/api';
 import DirectorEvaluationInput from './DirectorEvaluationInput';
 import HrEvaluationInput from './HrEvaluationInput';
@@ -53,10 +53,27 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
         return null;
     }
 
-    // Find existing evaluation from current user
-    const userEvaluation = evaluations.find(e => e.evaluatorId === user.id);
+    // Find existing evaluations from current user BY EVALUATOR TYPE
+    // This allows admin/users with multiple roles to submit different evaluation types
+    // Note: Compare evaluatorType as string since API returns string, not enum
+    const directorEvaluation = evaluations.find(
+        e => e.evaluatorId === user.id && String(e.evaluatorType) === String(EvaluatorType.DIRECTOR)
+    );
+    const hrEvaluation = evaluations.find(
+        e => e.evaluatorId === user.id && String(e.evaluatorType) === String(EvaluatorType.HR)
+    );
+    const businessBlockEvaluation = evaluations.find(
+        e => e.evaluatorId === user.id && String(e.evaluatorType) === String(EvaluatorType.BUSINESS_BLOCK)
+    );
 
-    // Determine if user can evaluate
+    // Debug logging - remove after fixing
+    console.log('EvaluationPanel Debug:', {
+        userId: user.id,
+        evaluations: evaluations.map(e => ({ id: e.id, evaluatorId: e.evaluatorId, evaluatorType: e.evaluatorType })),
+        directorEvaluation: directorEvaluation ? { id: directorEvaluation.id, evaluatorId: directorEvaluation.evaluatorId } : null
+    });
+
+    // Determine if user can evaluate based on role
     const canEvaluateAsDirector = user.role === Role.DIRECTOR || user.role === Role.ADMIN;
     const canEvaluateAsHR = user.role === Role.HR || user.role === Role.ADMIN;
     const canEvaluateAsBusinessBlock = user.role === Role.BUSINESS_BLOCK || user.role === Role.ADMIN;
@@ -65,6 +82,17 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
     const canEvaluateAsBusinessBlockForTarget = canEvaluateAsBusinessBlock && targetType === 'DEPARTMENT';
 
     const hasPermission = canEvaluateAsDirector || canEvaluateAsHR || canEvaluateAsBusinessBlockForTarget;
+
+    // Check if user has already submitted evaluations for each type they can do
+    const hasSubmittedDirector = directorEvaluation && directorEvaluation.status !== 'DRAFT';
+    const hasSubmittedHR = hrEvaluation && hrEvaluation.status !== 'DRAFT';
+    const hasSubmittedBusinessBlock = businessBlockEvaluation && businessBlockEvaluation.status !== 'DRAFT';
+
+    // Check if all available evaluation types are already submitted
+    const allEvaluationsSubmitted =
+        (!canEvaluateAsDirector || hasSubmittedDirector) &&
+        (!canEvaluateAsHR || hasSubmittedHR) &&
+        (!canEvaluateAsBusinessBlockForTarget || hasSubmittedBusinessBlock);
 
     if (!hasPermission) {
         return (
@@ -82,41 +110,31 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
         );
     }
 
-    // If user already evaluated, show read-only view
-    if (userEvaluation && userEvaluation.status !== 'DRAFT') {
-        return (
-            <div className="bg-green-50 rounded-lg border border-green-200 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <h3 className="font-semibold text-green-800">You have already evaluated this {targetType.toLowerCase()}</h3>
-                </div>
-                <div className="text-sm text-green-700">
-                    <p>Your evaluation has been submitted.</p>
-                    {userEvaluation.comment && (
-                        <div className="mt-2 p-2 bg-white rounded border border-green-200">
-                            <p className="font-medium">Comment:</p>
-                            <p className="text-gray-700">{userEvaluation.comment}</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
+    // Note: We no longer early return here - evaluations can be edited after submission
+
+    // Convert numeric rating back to stars for Director (reverse of convertStarsToNumeric)
+    const convertNumericToStars = (numericRating: number | undefined): number | undefined => {
+        if (numericRating === undefined || numericRating < 4.25 || numericRating > 5.0) {
+            return undefined;
+        }
+        // Reverse formula: stars = 1 + (numericRating - 4.25) / 0.1875
+        return Math.round(1 + (numericRating - 4.25) / 0.1875);
+    };
 
     return (
         <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Provide Your Evaluation</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+                {allEvaluationsSubmitted ? 'Your Evaluations' : 'Provide Your Evaluation'}
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {canEvaluateAsDirector && (
                     <DirectorEvaluationInput
                         targetType={targetType}
                         targetId={targetId}
-                        currentRating={userEvaluation?.numericRating}
-                        currentComment={userEvaluation?.comment}
-                        evaluationId={userEvaluation?.id}
+                        currentRating={convertNumericToStars(directorEvaluation?.numericRating)}
+                        currentComment={directorEvaluation?.comment}
+                        evaluationId={directorEvaluation?.id}
                         onSave={handleEvaluationSaved}
                     />
                 )}
@@ -125,9 +143,9 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
                     <HrEvaluationInput
                         targetType={targetType}
                         targetId={targetId}
-                        currentRating={userEvaluation?.letterRating as 'A' | 'B' | 'C' | 'D' | undefined}
-                        currentComment={userEvaluation?.comment}
-                        evaluationId={userEvaluation?.id}
+                        currentRating={hrEvaluation?.letterRating as 'A' | 'B' | 'C' | 'D' | undefined}
+                        currentComment={hrEvaluation?.comment}
+                        evaluationId={hrEvaluation?.id}
                         onSave={handleEvaluationSaved}
                     />
                 )}
@@ -136,9 +154,9 @@ const EvaluationPanel: React.FC<Props> = ({ targetType, targetId, onEvaluationSa
                     <BusinessBlockEvaluationInput
                         targetType={targetType}
                         targetId={targetId}
-                        currentRating={userEvaluation?.numericRating}
-                        currentComment={userEvaluation?.comment}
-                        evaluationId={userEvaluation?.id}
+                        currentRating={businessBlockEvaluation?.numericRating}
+                        currentComment={businessBlockEvaluation?.comment}
+                        evaluationId={businessBlockEvaluation?.id}
                         onSave={handleEvaluationSaved}
                     />
                 )}

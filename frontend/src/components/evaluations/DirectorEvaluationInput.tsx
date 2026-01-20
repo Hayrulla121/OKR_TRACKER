@@ -39,20 +39,34 @@ const DirectorEvaluationInput: React.FC<Props> = ({
         setSuccess(false);
 
         try {
-            await evaluationApi.create({
+            const data = {
                 targetType,
                 targetId,
                 evaluatorType: EvaluatorType.DIRECTOR,
                 starRating: stars,
                 comment: comment.trim() || undefined
-            });
+            };
+
+            console.log('DirectorEvaluationInput: Saving evaluation', { evaluationId, data });
+
+            if (evaluationId) {
+                // Update existing evaluation
+                console.log('DirectorEvaluationInput: Updating existing evaluation:', evaluationId);
+                await evaluationApi.update(evaluationId, data);
+            } else {
+                // Create new evaluation
+                console.log('DirectorEvaluationInput: Creating new evaluation');
+                await evaluationApi.create(data);
+            }
 
             setSuccess(true);
             setTimeout(() => {
                 onSave();
             }, 1000);
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to save evaluation');
+            console.error('DirectorEvaluationInput: Error saving evaluation', err.response?.data || err);
+            const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to save evaluation';
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }

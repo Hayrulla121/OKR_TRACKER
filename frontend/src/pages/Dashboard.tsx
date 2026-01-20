@@ -5,6 +5,7 @@ import Speedometer from '../components/Speedometer';
 import DepartmentCard from '../components/DepartmentCard';
 import SettingsModal from '../components/SettingsModal';
 import DepartmentModal from '../components/DepartmentModal';
+import DepartmentDetailView from '../components/DepartmentDetailView';
 import OrgScoreChart from '../components/OrgScoreChart';
 import ObjectiveScoreChart from '../components/ObjectiveScoreChart';
 import LanguageSelector from '../components/LanguageSelector';
@@ -104,10 +105,16 @@ function Dashboard() {
     refreshAllData();
   }, []);
 
+  // Helper to get the best available score for a department (finalScore if available, otherwise OKR score)
+  const getDepartmentDisplayScore = (dept: Department): ScoreResult | undefined => {
+    return dept.finalScore || dept.score;
+  };
+
   const overallScore = React.useMemo((): ScoreResult => {
+    // Use finalScore when available (has all evaluations), otherwise fall back to OKR score
     const scores = departments
-        .filter(d => d.score && d.score.score > 0)
-        .map(d => d.score!.score);
+        .filter(d => getDepartmentDisplayScore(d) && getDepartmentDisplayScore(d)!.score > 0)
+        .map(d => getDepartmentDisplayScore(d)!.score);
 
     const defaultColor = '#d9534f';
     const defaultLevel = 'below';
@@ -172,7 +179,9 @@ function Dashboard() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
-            {departments.map((dept) => (
+            {departments.map((dept) => {
+                const displayScore = getDepartmentDisplayScore(dept);
+                return (
                 <button
                     key={dept.id}
                     onClick={() => setSelectedDepartment(dept)}
@@ -184,17 +193,20 @@ function Dashboard() {
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-xs truncate flex-1">{dept.name}</h3>
-                    {dept.score && (
+                    {displayScore && (
                         <span
                             className="text-xs font-bold ml-1"
-                            style={{ color: selectedDepartment?.id === dept.id ? 'white' : dept.score.color }}
+                            style={{ color: selectedDepartment?.id === dept.id ? 'white' : displayScore.color }}
                         >
-                          {dept.score.score.toFixed(2)}
+                          {displayScore.score.toFixed(2)}
                         </span>
                     )}
                   </div>
+                  {dept.finalScore && (
+                      <div className="text-xs opacity-75 mt-0.5">✓ Evaluated</div>
+                  )}
                 </button>
-            ))}
+            );})}
 
             {departments.length === 0 && (
                 <div className="text-center py-6 text-slate-400">
@@ -354,7 +366,9 @@ function Dashboard() {
                       <div className="bg-white rounded-xl shadow-lg p-4 border border-slate-200">
                         <h2 className="text-sm font-bold text-slate-800 mb-3">{t.allDepartments}</h2>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                          {departments.map((dept) => (
+                          {departments.map((dept) => {
+                              const displayScore = getDepartmentDisplayScore(dept);
+                              return (
                               <div
                                   key={dept.id}
                                   onClick={() => setModalDepartment(dept)}
@@ -364,16 +378,19 @@ function Dashboard() {
                                   <h3 className="font-bold text-slate-800 text-xs truncate group-hover:text-primary transition-colors">
                                     {dept.name}
                                   </h3>
-                                  <p className="text-xs text-slate-500">{dept.objectives.length} {t.objectives}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {dept.objectives.length} {t.objectives}
+                                    {dept.finalScore && <span className="ml-1 text-green-600">✓</span>}
+                                  </p>
                                 </div>
                                 <Speedometer
-                                    score={dept.score || defaultScore}
+                                    score={displayScore || defaultScore}
                                     size="sm"
                                     compact={true}
                                     showLabel={true}
                                 />
                               </div>
-                          ))}
+                          );})}
                         </div>
                       </div>
                   )}
@@ -400,7 +417,14 @@ function Dashboard() {
                     </button>
                   </div>
 
-                  <div className="mb-4 flex justify-end">
+                  {/* Department Detail View with Multi-Speedometer and Evaluation Panel */}
+                  <DepartmentDetailView
+                    department={selectedDepartment}
+                    onUpdate={refreshAllData}
+                  />
+
+                  {/* View Mode Toggle */}
+                  <div className="mt-6 mb-4 flex justify-end">
                     <div className="inline-flex rounded-lg border border-slate-300 bg-white shadow-sm">
                       <button
                           onClick={() => setViewMode('list')}
@@ -431,33 +455,7 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                    <div className="lg:col-span-1 bg-white rounded-xl shadow-lg p-5 border border-slate-200">
-                      <h2 className="text-base font-bold text-slate-800 mb-4 text-center">{t.departmentScore}</h2>
-                      <Speedometer score={selectedDepartment.score || defaultScore} size="md" />
-                    </div>
-
-                    <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-5 border border-slate-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-base font-bold text-slate-800">{t.scoreSummary}</h2>
-                        <div className="flex items-center gap-4 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-3 h-0.5 rounded" style={{ backgroundColor: selectedDepartment.score?.color || '#666' }}></span>
-                            <span className="text-slate-500">{t.avgScore}: <span className="font-bold" style={{ color: selectedDepartment.score?.color || '#666' }}>{selectedDepartment.score?.score.toFixed(2) || '0.00'}</span></span>
-                          </div>
-                          <div className="text-slate-400">
-                            {selectedDepartment.objectives.length} {t.objectives} | {selectedDepartment.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)} {t.keyResultsLabel}
-                          </div>
-                        </div>
-                      </div>
-                      <ObjectiveScoreChart
-                        objectives={selectedDepartment.objectives}
-                        departmentScore={selectedDepartment.score || defaultScore}
-                        height={160}
-                      />
-                    </div>
-                  </div>
-
+                  {/* Objectives Section */}
                   {selectedDepartment.objectives.length === 0 ? (
                       <div className="bg-white rounded-xl shadow-lg p-12 border border-slate-200 text-center">
                         <div className="text-5xl mb-3">🎯</div>

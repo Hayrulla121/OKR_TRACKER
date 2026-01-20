@@ -88,6 +88,7 @@ export const authApi = {
 // Evaluation APIs
 export const evaluationApi = {
     create: (data: EvaluationCreateRequest) => api.post<Evaluation>('/evaluations', data),
+    update: (id: string, data: EvaluationCreateRequest) => api.put<Evaluation>(`/evaluations/${id}`, data),
     submit: (id: string) => api.post<Evaluation>(`/evaluations/${id}/submit`),
     getForTarget: (type: string, id: string) => api.get<Evaluation[]>(`/evaluations/target/${type}/${id}`),
     getMy: () => api.get<Evaluation[]>('/evaluations/my'),

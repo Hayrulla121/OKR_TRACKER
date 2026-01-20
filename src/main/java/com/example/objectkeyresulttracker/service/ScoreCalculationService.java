@@ -3,6 +3,7 @@ import com.example.objectkeyresulttracker.dto.*;
 import com.example.objectkeyresulttracker.entity.*;
 import com.example.objectkeyresulttracker.repository.EvaluationRepository;
 import com.example.objectkeyresulttracker.repository.ScoreLevelRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.function.Function;
@@ -10,6 +11,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.Double.parseDouble;
 
+@Slf4j
 @Service
 public class ScoreCalculationService {
 
@@ -424,22 +426,33 @@ public class ScoreCalculationService {
         ScoreResult autoScoreResult = calculateDepartmentScore(objectives);
         Double autoScore = autoScoreResult.getScore();
 
-        // 2. Get evaluations for this department
-        Map<EvaluatorType, Evaluation> evals = getEvaluationsForTarget("DEPARTMENT", UUID.fromString(departmentId));
+        // 2. Get evaluations for this department (handle UUID conversion safely)
+        Map<EvaluatorType, Evaluation> evals;
+        try {
+            UUID targetId = UUID.fromString(departmentId);
+            evals = getEvaluationsForTarget("DEPARTMENT", targetId);
+        } catch (IllegalArgumentException e) {
+            // If departmentId is not a valid UUID, return empty evaluations
+            System.err.println("Warning: Invalid department ID format for evaluation lookup: " + departmentId);
+            evals = Map.of();
+        }
 
         // 3. Extract Director evaluation
         Evaluation directorEval = evals.get(EvaluatorType.DIRECTOR);
         Double directorScore = directorEval != null ? directorEval.getNumericRating() : null;
         Integer directorStars = directorScore != null ? convertNumericToStars(directorScore) : null;
+        String directorComment = directorEval != null ? directorEval.getComment() : null;
 
         // 4. Extract HR evaluation
         Evaluation hrEval = evals.get(EvaluatorType.HR);
         String hrLetter = hrEval != null ? hrEval.getLetterRating() : null;
         Double hrScore = hrLetter != null ? convertHrLetterToNumeric(hrLetter) : null;
+        String hrComment = hrEval != null ? hrEval.getComment() : null;
 
         // 5. Extract Business Block evaluation
         Evaluation businessBlockEval = evals.get(EvaluatorType.BUSINESS_BLOCK);
         Double businessBlockScore = businessBlockEval != null ? businessBlockEval.getNumericRating() : null;
+        String businessBlockComment = businessBlockEval != null ? businessBlockEval.getComment() : null;
 
         // 6. Calculate weighted final score
         Double finalScore = null;
@@ -457,9 +470,12 @@ public class ScoreCalculationService {
                 .automaticOkrPercentage(autoScoreResult.getPercentage())
                 .directorEvaluation(directorScore)
                 .directorStars(directorStars)
+                .directorComment(directorComment)
                 .hrEvaluationLetter(hrLetter)
                 .hrEvaluationNumeric(hrScore)
+                .hrComment(hrComment)
                 .businessBlockEvaluation(businessBlockScore)
+                .businessBlockComment(businessBlockComment)
                 .finalCombinedScore(finalScore)
                 .finalPercentage(finalScore != null ? scoreToPercentage(finalScore) : null)
                 .scoreLevel(scoreLevel)
@@ -474,9 +490,15 @@ public class ScoreCalculationService {
      * Get submitted evaluations for a target, grouped by evaluator type
      */
     private Map<EvaluatorType, Evaluation> getEvaluationsForTarget(String targetType, UUID targetId) {
+        log.info("Fetching evaluations for targetType={}, targetId={}", targetType, targetId);
         List<Evaluation> evals = evaluationRepository.findByTargetTypeAndTargetIdAndStatus(
                 targetType, targetId, EvaluationStatus.SUBMITTED
         );
+        log.info("Found {} submitted evaluations for targetId={}", evals.size(), targetId);
+        for (Evaluation e : evals) {
+            log.info("  - Evaluation: id={}, evaluatorType={}, targetId={}, status={}",
+                    e.getId(), e.getEvaluatorType(), e.getTargetId(), e.getStatus());
+        }
         return evals.stream()
                 .collect(Collectors.toMap(
                         Evaluation::getEvaluatorType,

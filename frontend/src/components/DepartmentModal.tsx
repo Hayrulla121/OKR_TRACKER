@@ -1,8 +1,7 @@
 import React from 'react';
 import { Department } from '../types/okr';
-import Speedometer from './Speedometer';
 import DepartmentCard from './DepartmentCard';
-import ObjectiveScoreChart from './ObjectiveScoreChart';
+import DepartmentDetailView from './DepartmentDetailView';
 import { useLanguage } from '../i18n';
 
 interface DepartmentModalProps {
@@ -13,7 +12,6 @@ interface DepartmentModalProps {
 
 const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, onUpdate }) => {
     const { t } = useLanguage();
-    const defaultScore = { score: 3, level: 'below' as const, color: '#d9534f', percentage: 0 };
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,36 +61,14 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
 
                 {/* Modal Content - Scrollable */}
                 <div className="flex-1 overflow-y-auto p-6">
-                    {/* Speedometer and Summary */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                        <div className="lg:col-span-1 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
-                            <h3 className="text-base font-bold text-slate-800 mb-3 text-center">{t.departmentScore}</h3>
-                            <Speedometer score={department.score || defaultScore} size="sm" />
-                        </div>
-
-                        <div className="lg:col-span-2 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-base font-bold text-slate-800">{t.scoreSummary}</h3>
-                                <div className="flex items-center gap-4 text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-3 h-0.5 rounded" style={{ backgroundColor: department.score?.color || '#666' }}></span>
-                                        <span className="text-slate-500">{t.avgScore}: <span className="font-bold" style={{ color: department.score?.color || '#666' }}>{department.score?.score.toFixed(2) || '0.00'}</span></span>
-                                    </div>
-                                    <div className="text-slate-400">
-                                        {department.objectives.length} {t.objectivesLabel} | {department.objectives.reduce((sum, obj) => sum + obj.keyResults.length, 0)} {t.keyResultsLabel}
-                                    </div>
-                                </div>
-                            </div>
-                            <ObjectiveScoreChart
-                                objectives={department.objectives}
-                                departmentScore={department.score || defaultScore}
-                                height={140}
-                            />
-                        </div>
-                    </div>
+                    {/* Department Detail View with Multi-Speedometer and Evaluation Panel */}
+                    <DepartmentDetailView
+                        department={department}
+                        onUpdate={onUpdate}
+                    />
 
                     {/* Objectives Breakdown */}
-                    <div className="space-y-4">
+                    <div className="mt-6 space-y-4">
                         {department.objectives.length === 0 ? (
                             <div className="bg-white rounded-xl shadow-lg p-12 border border-slate-200 text-center">
                                 <div className="text-5xl mb-3">🎯</div>

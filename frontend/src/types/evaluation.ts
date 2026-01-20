@@ -40,9 +40,12 @@ export interface DepartmentScoreResult {
   automaticOkrPercentage: number;
   directorEvaluation?: number;
   directorStars?: number;
+  directorComment?: string;
   hrEvaluationLetter?: string;
   hrEvaluationNumeric?: number;
+  hrComment?: string;
   businessBlockEvaluation?: number;
+  businessBlockComment?: string;
   finalCombinedScore?: number;
   finalPercentage?: number;
   scoreLevel: string;

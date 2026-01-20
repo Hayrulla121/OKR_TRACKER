@@ -6,6 +6,7 @@ import com.example.objectkeyresulttracker.entity.*;
 import com.example.objectkeyresulttracker.repository.EvaluationRepository;
 import com.example.objectkeyresulttracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 /**
  * Service for managing evaluations
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EvaluationService {
@@ -24,10 +26,38 @@ public class EvaluationService {
     private final UserRepository userRepository;
 
     /**
+     * Migrate any DRAFT evaluations to SUBMITTED status on application startup.
+     * This handles evaluations created before the auto-submit change was made.
+     */
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    @Transactional
+    public void migrateDraftEvaluationsToSubmitted() {
+        List<Evaluation> draftEvals = evaluationRepository.findAll().stream()
+                .filter(e -> e.getStatus() == EvaluationStatus.DRAFT)
+                .toList();
+
+        if (!draftEvals.isEmpty()) {
+            log.info("Found {} DRAFT evaluations to migrate to SUBMITTED", draftEvals.size());
+            for (Evaluation eval : draftEvals) {
+                log.info("Migrating evaluation: id={}, targetType={}, targetId={}, evaluatorType={}",
+                        eval.getId(), eval.getTargetType(), eval.getTargetId(), eval.getEvaluatorType());
+                eval.setStatus(EvaluationStatus.SUBMITTED);
+                evaluationRepository.save(eval);
+            }
+            log.info("Successfully migrated {} evaluations to SUBMITTED status", draftEvals.size());
+        } else {
+            log.info("No DRAFT evaluations found to migrate");
+        }
+    }
+
+    /**
      * Create a new evaluation
      */
     @Transactional
     public EvaluationDTO createEvaluation(EvaluationCreateRequest request, UUID evaluatorId) {
+        log.info("Creating evaluation: evaluatorId={}, targetType={}, targetId={}, evaluatorType={}",
+                evaluatorId, request.getTargetType(), request.getTargetId(), request.getEvaluatorType());
+
         User evaluator = userRepository.findById(evaluatorId)
                 .orElseThrow(() -> new IllegalArgumentException("Evaluator not found"));
 
@@ -37,6 +67,8 @@ public class EvaluationService {
         // Check for duplicate evaluations
         if (evaluationRepository.existsByEvaluatorAndTargetTypeAndTargetIdAndEvaluatorType(
                 evaluator, request.getTargetType(), request.getTargetId(), request.getEvaluatorType())) {
+            log.warn("Duplicate evaluation attempt: evaluator={}, targetId={}, evaluatorType={}",
+                    evaluatorId, request.getTargetId(), request.getEvaluatorType());
             throw new IllegalArgumentException("You have already evaluated this " + request.getTargetType().toLowerCase());
         }
 
@@ -49,7 +81,7 @@ public class EvaluationService {
         // Validate rating based on evaluator type
         validateRating(request.getEvaluatorType(), numericRating, request.getLetterRating());
 
-        // Create evaluation
+        // Create evaluation - auto-submit since we don't need draft workflow
         Evaluation evaluation = Evaluation.builder()
                 .evaluator(evaluator)
                 .evaluatorType(request.getEvaluatorType())
@@ -58,10 +90,12 @@ public class EvaluationService {
                 .numericRating(numericRating)
                 .letterRating(request.getLetterRating())
                 .comment(request.getComment())
-                .status(EvaluationStatus.DRAFT)
+                .status(EvaluationStatus.SUBMITTED)
                 .build();
 
         evaluation = evaluationRepository.save(evaluation);
+        log.info("Evaluation created successfully: id={}, targetId={}, evaluatorType={}, status={}",
+                evaluation.getId(), evaluation.getTargetId(), evaluation.getEvaluatorType(), evaluation.getStatus());
 
         return convertToDTO(evaluation);
     }
@@ -91,10 +125,64 @@ public class EvaluationService {
     }
 
     /**
+     * Update an existing evaluation
+     * Allows evaluators to modify their submitted evaluations
+     */
+    @Transactional
+    public EvaluationDTO updateEvaluation(UUID evaluationId, EvaluationCreateRequest request, UUID evaluatorId) {
+        log.info("Updating evaluation: id={}, evaluatorId={}", evaluationId, evaluatorId);
+
+        Evaluation evaluation = evaluationRepository.findById(evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("Evaluation not found"));
+
+        // Verify ownership - only the original evaluator can update
+        if (!evaluation.getEvaluator().getId().equals(evaluatorId)) {
+            throw new IllegalArgumentException("You can only update your own evaluations");
+        }
+
+        // Convert star rating to numeric if provided (for Director)
+        Double numericRating = request.getNumericRating();
+        if (request.getStarRating() != null && evaluation.getEvaluatorType() == EvaluatorType.DIRECTOR) {
+            numericRating = convertStarsToNumeric(request.getStarRating());
+        }
+
+        // Validate rating based on evaluator type
+        validateRating(evaluation.getEvaluatorType(), numericRating, request.getLetterRating());
+
+        // Update the evaluation fields
+        evaluation.setNumericRating(numericRating);
+        evaluation.setLetterRating(request.getLetterRating());
+        evaluation.setComment(request.getComment());
+
+        evaluation = evaluationRepository.save(evaluation);
+        log.info("Evaluation updated successfully: id={}, evaluatorType={}", evaluation.getId(), evaluation.getEvaluatorType());
+
+        return convertToDTO(evaluation);
+    }
+
+    /**
      * Get all evaluations for a target
      */
     public List<EvaluationDTO> getEvaluationsForTarget(String targetType, UUID targetId) {
-        return evaluationRepository.findByTargetTypeAndTargetId(targetType, targetId).stream()
+        log.info("Fetching evaluations for targetType={}, targetId={}", targetType, targetId);
+        List<Evaluation> evals = evaluationRepository.findByTargetTypeAndTargetId(targetType, targetId);
+        log.info("Found {} evaluations for target", evals.size());
+        return evals.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all evaluations in the system (for debugging)
+     */
+    public List<EvaluationDTO> getAllEvaluations() {
+        List<Evaluation> allEvals = evaluationRepository.findAll();
+        log.info("Total evaluations in database: {}", allEvals.size());
+        for (Evaluation e : allEvals) {
+            log.info("  - Evaluation: id={}, targetType={}, targetId={}, evaluatorType={}, status={}",
+                    e.getId(), e.getTargetType(), e.getTargetId(), e.getEvaluatorType(), e.getStatus());
+        }
+        return allEvals.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

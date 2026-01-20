@@ -41,7 +41,9 @@ export interface Department {
     id: string;
     name: string;
     objectives: Objective[];
-    score?: ScoreResult;
+    score?: ScoreResult; // Automatic OKR score
+    finalScore?: ScoreResult; // Final combined score (60% OKR + 20% Director + 20% HR)
+    hasAllEvaluations?: boolean; // True if department has both Director and HR evaluations
 }
 
 export interface ScoreLevel {

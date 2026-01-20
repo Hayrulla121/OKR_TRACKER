@@ -38,13 +38,21 @@ const BusinessBlockEvaluationInput: React.FC<Props> = ({
         setSuccess(false);
 
         try {
-            await evaluationApi.create({
+            const data = {
                 targetType,
                 targetId,
                 evaluatorType: EvaluatorType.BUSINESS_BLOCK,
                 numericRating: rating,
                 comment: comment.trim() || undefined
-            });
+            };
+
+            if (evaluationId) {
+                // Update existing evaluation
+                await evaluationApi.update(evaluationId, data);
+            } else {
+                // Create new evaluation
+                await evaluationApi.create(data);
+            }
 
             setSuccess(true);
             setTimeout(() => {

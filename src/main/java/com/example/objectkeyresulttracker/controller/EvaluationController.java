@@ -52,6 +52,21 @@ public class EvaluationController {
     }
 
     /**
+     * Update an existing evaluation
+     * Allows evaluators to modify their submitted evaluations
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('DIRECTOR', 'HR', 'BUSINESS_BLOCK', 'ADMIN')")
+    public ResponseEntity<EvaluationDTO> updateEvaluation(
+            @PathVariable UUID id,
+            @RequestBody EvaluationCreateRequest request,
+            Authentication authentication) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        EvaluationDTO evaluation = evaluationService.updateEvaluation(id, request, userDetails.getId());
+        return ResponseEntity.ok(evaluation);
+    }
+
+    /**
      * Get all evaluations for a specific target (department or employee)
      */
     @GetMapping("/target/{type}/{id}")
@@ -69,6 +84,16 @@ public class EvaluationController {
     public ResponseEntity<List<EvaluationDTO>> getMyEvaluations(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         List<EvaluationDTO> evaluations = evaluationService.getEvaluationsByEvaluator(userDetails.getId());
+        return ResponseEntity.ok(evaluations);
+    }
+
+    /**
+     * Get all evaluations (admin debug endpoint)
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<EvaluationDTO>> getAllEvaluations() {
+        List<EvaluationDTO> evaluations = evaluationService.getAllEvaluations();
         return ResponseEntity.ok(evaluations);
     }
 

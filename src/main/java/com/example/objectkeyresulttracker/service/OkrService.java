@@ -3,8 +3,10 @@ package com.example.objectkeyresulttracker.service;
 
 
 import com.example.objectkeyresulttracker.dto.DepartmentDTO;
+import com.example.objectkeyresulttracker.dto.DepartmentScoreResult;
 import com.example.objectkeyresulttracker.dto.KeyResultDTO;
 import com.example.objectkeyresulttracker.dto.ObjectiveDTO;
+import com.example.objectkeyresulttracker.dto.ScoreResult;
 import com.example.objectkeyresulttracker.dto.ThresholdDTO;
 import com.example.objectkeyresulttracker.entity.Department;
 import com.example.objectkeyresulttracker.entity.KeyResult;
@@ -193,11 +195,32 @@ public class OkrService {
                 .map(this::toObjectiveDTO)
                 .collect(Collectors.toList());
 
+        // Get automatic OKR score
+        ScoreResult okrScore = scoreService.calculateDepartmentScore(dept.getObjectives());
+
+        // Get full evaluation result including final combined score
+        DepartmentScoreResult evalResult = scoreService.calculateDepartmentScoreWithEvaluations(dept.getId(), dept.getObjectives());
+
+        // Create final score result if all evaluations are present
+        ScoreResult finalScore = null;
+        if (evalResult.getFinalCombinedScore() != null) {
+            finalScore = ScoreResult.builder()
+                    .score(evalResult.getFinalCombinedScore())
+                    .level(evalResult.getScoreLevel())
+                    .color(evalResult.getColor())
+                    .percentage(evalResult.getFinalPercentage())
+                    .build();
+        }
+
+        boolean hasAllEvaluations = evalResult.getHasDirectorEvaluation() && evalResult.getHasHrEvaluation();
+
         return DepartmentDTO.builder()
                 .id(dept.getId())
                 .name(dept.getName())
                 .objectives(objectives)
-                .score(scoreService.calculateDepartmentScore(dept.getObjectives()))
+                .score(okrScore)
+                .finalScore(finalScore)
+                .hasAllEvaluations(hasAllEvaluations)
                 .build();
     }
 
@@ -241,10 +264,16 @@ public class OkrService {
     @Transactional
     public List<DepartmentDTO> loadDemoData() {
         try {
-            // Clear existing data
+            // Check if demo data already exists - skip loading if users already exist
+            if (userRepository.count() > 0) {
+                System.out.println("Demo data already exists, skipping initialization.");
+                return getAllDepartments();
+            }
+
+            // Clear existing data (in correct order to respect foreign key constraints)
             evaluationRepository.deleteAll();
-            userRepository.deleteAll();
             departmentRepository.deleteAll();
+            userRepository.deleteAll();
 
             // Create PMO department with demo objectives
             Department pmoDept = new Department();
@@ -380,43 +409,9 @@ public class OkrService {
                         new DemoKR("KR6.3 Процент изменений плана проекта после планирования", KeyResult.MetricType.LOWER_BETTER, "%", 30, 20.0, 15.0, 10.0, 5.0, 0.0, "0")
                 });
 
-            // ==================== CREATE DEMO EVALUATIONS ====================
-
-            // Director evaluation for PMO department (5 stars = 5.0)
-            com.example.objectkeyresulttracker.entity.Evaluation directorEval = com.example.objectkeyresulttracker.entity.Evaluation.builder()
-                    .evaluator(director)
-                    .evaluatorType(com.example.objectkeyresulttracker.entity.EvaluatorType.DIRECTOR)
-                    .targetType("DEPARTMENT")
-                    .targetId(java.util.UUID.fromString(pmoDept.getId()))
-                    .numericRating(5.0) // 5 stars = 5.0
-                    .comment("Отличная работа! Команда показывает высокие результаты.")
-                    .status(com.example.objectkeyresulttracker.entity.EvaluationStatus.SUBMITTED)
-                    .build();
-            evaluationRepository.save(directorEval);
-
-            // HR evaluation for PMO department (A grade)
-            com.example.objectkeyresulttracker.entity.Evaluation hrEval = com.example.objectkeyresulttracker.entity.Evaluation.builder()
-                    .evaluator(hr)
-                    .evaluatorType(com.example.objectkeyresulttracker.entity.EvaluatorType.HR)
-                    .targetType("DEPARTMENT")
-                    .targetId(java.util.UUID.fromString(pmoDept.getId()))
-                    .letterRating("A")
-                    .comment("Сотрудники активно развиваются, хорошая командная работа.")
-                    .status(com.example.objectkeyresulttracker.entity.EvaluationStatus.SUBMITTED)
-                    .build();
-            evaluationRepository.save(hrEval);
-
-            // Business Block evaluation for PMO department (5 out of 5)
-            com.example.objectkeyresulttracker.entity.Evaluation businessEval = com.example.objectkeyresulttracker.entity.Evaluation.builder()
-                    .evaluator(businessBlock)
-                    .evaluatorType(com.example.objectkeyresulttracker.entity.EvaluatorType.BUSINESS_BLOCK)
-                    .targetType("DEPARTMENT")
-                    .targetId(java.util.UUID.fromString(pmoDept.getId()))
-                    .numericRating(5.0)
-                    .comment("Департамент эффективно поддерживает бизнес-цели банка.")
-                    .status(com.example.objectkeyresulttracker.entity.EvaluationStatus.SUBMITTED)
-                    .build();
-            evaluationRepository.save(businessEval);
+            // ==================== DEMO EVALUATIONS REMOVED ====================
+            // Evaluations are not pre-created so users can test the evaluation flow themselves
+            // Login as director/hr/business to submit evaluations
 
             // Flush to ensure all data is persisted before fetching
             entityManager.flush();
@@ -433,10 +428,8 @@ public class OkrService {
             System.out.println("  5. Dept Leader:    username='pmo_leader' password='leader123'");
             System.out.println("  6. Employee 1:     username='employee1'  password='employee123'");
             System.out.println("  7. Employee 2:     username='employee2'  password='employee123'");
-            System.out.println("\nDemo Evaluations Created:");
-            System.out.println("  - Director rated PMO: 5 stars (5.0)");
-            System.out.println("  - HR rated PMO: Grade A (5.0)");
-            System.out.println("  - Business Block rated PMO: 5/5 (5.0)");
+            System.out.println("\nEvaluations:");
+            System.out.println("  - No pre-filled evaluations - login as director/hr/business to evaluate");
             System.out.println("\nDepartment Score Calculation:");
             System.out.println("  - Automatic OKR Score: Will be calculated from Key Results");
             System.out.println("  - Final Score: (Auto × 60%) + (Director × 20%) + (HR × 20%)");

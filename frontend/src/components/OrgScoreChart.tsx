@@ -22,19 +22,26 @@ const OrgScoreChart: React.FC<OrgScoreChartProps> = ({
     overallScore,
     height = 180
 }) => {
+    // Helper to get the best available score (finalScore if available, otherwise OKR score)
+    const getDisplayScore = (dept: Department) => dept.finalScore || dept.score;
+
     // Create data points showing how each department contributes to the org score
     // This creates a visual flow from min to max with the org score highlighted
     const sortedDepts = [...departments]
-        .filter(d => d.score)
-        .sort((a, b) => (a.score?.score || 0) - (b.score?.score || 0));
+        .filter(d => getDisplayScore(d))
+        .sort((a, b) => (getDisplayScore(a)?.score || 0) - (getDisplayScore(b)?.score || 0));
 
-    const data = sortedDepts.map((dept, index) => ({
-        name: dept.name.length > 10 ? dept.name.substring(0, 10) + '...' : dept.name,
-        fullName: dept.name,
-        score: dept.score?.score || 0,
-        orgScore: overallScore.score,
-        color: dept.score?.color || '#666'
-    }));
+    const data = sortedDepts.map((dept, index) => {
+        const displayScore = getDisplayScore(dept);
+        return {
+            name: dept.name.length > 10 ? dept.name.substring(0, 10) + '...' : dept.name,
+            fullName: dept.name,
+            score: displayScore?.score || 0,
+            orgScore: overallScore.score,
+            color: displayScore?.color || '#666',
+            hasEvaluations: !!dept.finalScore
+        };
+    });
 
     // Add org average point at the end
     if (data.length > 0) {
@@ -43,7 +50,8 @@ const OrgScoreChart: React.FC<OrgScoreChartProps> = ({
             fullName: 'Organization Average',
             score: overallScore.score,
             orgScore: overallScore.score,
-            color: overallScore.color
+            color: overallScore.color,
+            hasEvaluations: true
         });
     }
 

@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Build outputs
+target/
+frontend/build/
+frontend/node_modules/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Local data
+data/
+
+# Environment files (use Docker env vars instead)
+.env
+.env.*
+frontend/.env
+frontend/.env.*
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation
+*.md
+docs/
+
+# Docker files (prevent recursive copy)
+Dockerfile*
+docker-compose*
+.dockerignore

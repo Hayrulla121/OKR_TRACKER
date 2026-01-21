@@ -12,6 +12,24 @@ interface DepartmentModalProps {
 
 const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, onUpdate }) => {
     const { t } = useLanguage();
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    const scrollPositionRef = React.useRef<number>(0);
+
+    // Preserve scroll position across updates
+    const handleUpdate = React.useCallback(() => {
+        // Save current scroll position before update
+        if (scrollContainerRef.current) {
+            scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+        }
+        onUpdate();
+    }, [onUpdate]);
+
+    // Restore scroll position after re-render
+    React.useEffect(() => {
+        if (scrollContainerRef.current && scrollPositionRef.current > 0) {
+            scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+        }
+    }, [department]);
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,11 +78,11 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                 </div>
 
                 {/* Modal Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-3">
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3">
                     {/* Department Detail View with Multi-Speedometer and Evaluation Panel */}
                     <DepartmentDetailView
                         department={department}
-                        onUpdate={onUpdate}
+                        onUpdate={handleUpdate}
                     />
 
                     {/* Objectives Breakdown */}
@@ -81,7 +99,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ department, onClose, 
                                     key={objective.id}
                                     department={department}
                                     objective={objective}
-                                    onUpdate={onUpdate}
+                                    onUpdate={handleUpdate}
                                 />
                             ))
                         )}

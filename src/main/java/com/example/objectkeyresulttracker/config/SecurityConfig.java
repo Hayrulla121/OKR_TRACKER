@@ -100,6 +100,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (no authentication required)
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/export/**").permitAll() // Excel export
                         .requestMatchers("/h2-console/**").permitAll() // H2 database console
                         .requestMatchers("/error").permitAll()
 

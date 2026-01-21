@@ -26,7 +26,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   // Objective form
   const [selectedDeptId, setSelectedDeptId] = useState('');
   const [newObjName, setNewObjName] = useState('');
-  const [newObjWeight, setNewObjWeight] = useState('100');
+  const [newObjWeight, setNewObjWeight] = useState('');
 
   // Key Result form
   const [selectedObjId, setSelectedObjId] = useState('');
@@ -34,7 +34,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
   const [newKrDescription, setNewKrDescription] = useState('');
   const [newKrMetricType, setNewKrMetricType] = useState<MetricType>('HIGHER_BETTER');
   const [newKrUnit, setNewKrUnit] = useState('');
-  const [newKrWeight, setNewKrWeight] = useState('100');
+  const [newKrWeight, setNewKrWeight] = useState('');
   const [dynamicThresholds, setDynamicThresholds] = useState<Record<string, string>>({});
 
   // Initialize thresholds when score levels change
@@ -91,10 +91,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
     try {
       await objectiveApi.create(selectedDeptId, {
         name: newObjName,
-        weight: parseFloat(newObjWeight)
+        weight: newObjWeight ? parseFloat(newObjWeight) : undefined
       });
       setNewObjName('');
-      setNewObjWeight('100');
+      setNewObjWeight('');
       onUpdate();
     } catch (err) {
       setError(t.failedToCreateObjective);
@@ -203,14 +203,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
         description: newKrDescription,
         metricType: newKrMetricType,
         unit: newKrUnit || undefined,
-        weight: parseFloat(newKrWeight),
+        weight: newKrWeight ? parseFloat(newKrWeight) : undefined,
         thresholds: mapThresholdsToBackend(),
         actualValue: newKrMetricType === 'QUALITATIVE' ? 'E' : '0'
       });
       setNewKrName('');
       setNewKrDescription('');
       setNewKrUnit('');
-      setNewKrWeight('100');
+      setNewKrWeight('');
       // Reset thresholds to initial values
       const initialThresholds: Record<string, string> = {};
       scoreLevels.forEach((level, index) => {
@@ -417,7 +417,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                       min="0"
                       max="100"
                       className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
-                      required
                     />
                     <button
                       type="submit"
@@ -521,7 +520,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
                     min="0"
                     max="100"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#5A9CB5] focus:border-[#5A9CB5]"
-                    required
                   />
 
                   {newKrMetricType !== 'QUALITATIVE' && (

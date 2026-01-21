@@ -17,6 +17,7 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
     const { user } = useAuth();
     const [scores, setScores] = useState<DepartmentScoreResult | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Create a stable hash of KR actual values to detect real data changes
     const krDataHash = useMemo(() => {
@@ -28,6 +29,8 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
 
     // Track the last fetched state to prevent duplicate requests
     const lastFetchRef = React.useRef<string>('');
+    // Track if we've done initial load
+    const hasLoadedRef = React.useRef<boolean>(false);
 
     const fetchScores = useCallback(async () => {
         const fetchKey = `${department.id}-${krDataHash}-${refreshTrigger}`;
@@ -37,14 +40,21 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
         }
         lastFetchRef.current = fetchKey;
 
-        setLoading(true);
+        // Only show full loading spinner on initial load, use subtle indicator for refreshes
+        if (!hasLoadedRef.current) {
+            setLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
         try {
             const response = await departmentScoresApi.getScores(department.id);
             setScores(response.data);
+            hasLoadedRef.current = true;
         } catch (err) {
             console.error('Failed to fetch department scores:', err);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     }, [department.id, krDataHash, refreshTrigger]);
 
@@ -84,10 +94,18 @@ const DepartmentDetailView: React.FC<Props> = ({ department, onUpdate, refreshTr
     return (
         <div className="space-y-3">
             {/* Multi-Speedometer Display */}
-            <div className="bg-white rounded-lg shadow p-3 border border-slate-200">
-                <h2 className="text-lg font-bold text-gray-800 mb-2">
-                    {department.name} - Performance Scores
-                </h2>
+            <div className={`bg-white rounded-lg shadow p-3 border border-slate-200 ${isRefreshing ? 'opacity-70' : ''} transition-opacity`}>
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-bold text-gray-800">
+                        {department.name} - Performance Scores
+                    </h2>
+                    {isRefreshing && (
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <div className="w-4 h-4 border-2 border-[#5A9CB5] border-t-transparent rounded-full animate-spin"></div>
+                            <span>Updating...</span>
+                        </div>
+                    )}
+                </div>
                 <MultiSpeedometerDisplay scores={scores} />
             </div>
 

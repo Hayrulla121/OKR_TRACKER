@@ -99,3 +99,8 @@ export const evaluationApi = {
 export const departmentScoresApi = {
     getScores: (id: string) => api.get<DepartmentScoreResult>(`/departments/${id}/scores`),
 };
+
+// Export API
+export const exportApi = {
+    exportExcel: () => api.get('/export/excel', { responseType: 'blob' }),
+};

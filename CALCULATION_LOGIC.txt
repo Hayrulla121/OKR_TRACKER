@@ -1,0 +1,195 @@
+================================================================================
+                    OKR SCORE CALCULATION LOGIC
+================================================================================
+
+This document explains how scores are calculated throughout the OKR Tracker system.
+
+================================================================================
+1. KEY RESULT (KR) SCORE CALCULATION
+================================================================================
+
+Each Key Result is scored on a scale from 3.0 to 5.0 (configurable via Score Levels).
+
+METRIC TYPES:
+-------------
+A. HIGHER_BETTER (Quantitative - Higher is Better)
+   - The actual value is compared against threshold values
+   - Higher actual values result in better scores
+   - Example: Revenue, Sales Count, Customer Satisfaction %
+
+B. LOWER_BETTER (Quantitative - Lower is Better)
+   - The actual value is compared against threshold values
+   - Lower actual values result in better scores
+   - Example: Bug Count, Response Time, Error Rate
+
+C. QUALITATIVE (Letter Grade A-E)
+   - User selects a letter grade (A, B, C, D, E)
+   - Grades map directly to scores:
+     * A = 5.00 (Exceptional)
+     * B = 4.75 (Very Good)
+     * C = 4.50 (Good)
+     * D = 4.25 (Meets)
+     * E = 3.00 (Below)
+
+THRESHOLD-BASED SCORING (for HIGHER_BETTER and LOWER_BETTER):
+-------------------------------------------------------------
+Each KR has 5 threshold values that define performance levels:
+  - Below Threshold
+  - Meets Threshold
+  - Good Threshold
+  - Very Good Threshold
+  - Exceptional Threshold
+
+For HIGHER_BETTER:
+  - If actual >= exceptional threshold: Score approaches 5.00
+  - If actual >= veryGood threshold: Score in range 4.75-5.00
+  - If actual >= good threshold: Score in range 4.50-4.75
+  - If actual >= meets threshold: Score in range 4.25-4.50
+  - If actual >= below threshold: Score in range 3.00-4.25
+  - If actual < below threshold: Score = 3.00
+
+For LOWER_BETTER:
+  - If actual <= exceptional threshold: Score approaches 5.00
+  - If actual <= veryGood threshold: Score in range 4.75-5.00
+  - If actual <= good threshold: Score in range 4.50-4.75
+  - If actual <= meets threshold: Score in range 4.25-4.50
+  - If actual <= below threshold: Score in range 3.00-4.25
+  - If actual > below threshold: Score = 3.00
+
+Interpolation is used to calculate scores between threshold boundaries.
+
+================================================================================
+2. OBJECTIVE SCORE CALCULATION
+================================================================================
+
+IMPORTANT: Objective scores are calculated as a SIMPLE AVERAGE of all KR scores.
+
+Formula:
+  Objective Score = (Sum of all KR Scores) / (Number of KRs)
+
+NOTE: Key Result weights are currently NOT used in the objective score calculation.
+      The weight field exists on KRs but is purely informational/visual at this time.
+
+Example:
+  Objective has 3 Key Results:
+    - KR1 Score: 4.50
+    - KR2 Score: 4.75
+    - KR3 Score: 4.00
+
+  Objective Score = (4.50 + 4.75 + 4.00) / 3 = 4.42
+
+================================================================================
+3. DEPARTMENT SCORE CALCULATION (Automatic OKR Score)
+================================================================================
+
+Department scores ARE calculated using WEIGHTED AVERAGES of objective scores.
+
+Formula:
+  Department Score = (Sum of (Objective Score * Objective Weight)) / (Total Weight)
+
+If objectives don't have weights assigned, they are distributed equally:
+  Default Weight = 100 / (Number of Objectives with KRs)
+
+Example:
+  Department has 3 Objectives:
+    - Objective 1: Score 4.50, Weight 50%
+    - Objective 2: Score 4.75, Weight 30%
+    - Objective 3: Score 4.00, Weight 20%
+
+  Weighted Sum = (4.50 * 50) + (4.75 * 30) + (4.00 * 20) = 225 + 142.5 + 80 = 447.5
+  Total Weight = 50 + 30 + 20 = 100
+
+  Department Score = 447.5 / 100 = 4.475
+
+================================================================================
+4. MULTI-SOURCE EVALUATION (Final Combined Score)
+================================================================================
+
+The final department score combines three sources:
+
+SOURCE               | WEIGHT | DESCRIPTION
+---------------------|--------|--------------------------------------------
+Automatic OKR Score  |  60%   | Calculated from objectives/KRs (as above)
+Director Evaluation  |  20%   | Star rating (1-5) converted to 4.25-5.0 scale
+HR Evaluation        |  20%   | Letter grade (A-D) converted to numeric
+
+DIRECTOR STAR RATING CONVERSION:
+--------------------------------
+Stars are converted to a 4.25-5.0 scale:
+  Score = 4.25 + (stars - 1) * 0.1875
+
+  1 Star  = 4.25
+  2 Stars = 4.44
+  3 Stars = 4.63
+  4 Stars = 4.81
+  5 Stars = 5.00
+
+HR LETTER GRADE CONVERSION:
+---------------------------
+  A = 4.25 (Needs Improvement)
+  B = 4.50 (Meets Expectations)
+  C = 4.75 (Exceeds Expectations)
+  D = 5.00 (Outstanding)
+
+FINAL COMBINED SCORE CALCULATION:
+---------------------------------
+Only calculated when ALL three evaluations are present:
+
+  Final Score = (Auto OKR Score * 0.60) + (Director Score * 0.20) + (HR Score * 0.20)
+
+Example:
+  - Automatic OKR Score: 4.50
+  - Director Score: 4.81 (4 stars)
+  - HR Score: 4.75 (C grade)
+
+  Final = (4.50 * 0.60) + (4.81 * 0.20) + (4.75 * 0.20)
+        = 2.70 + 0.962 + 0.95
+        = 4.612
+
+BUSINESS BLOCK EVALUATION:
+--------------------------
+Business Block evaluations are displayed separately and are NOT included in the
+weighted final score calculation. They use the same star rating system as
+Director evaluations.
+
+================================================================================
+5. SCORE LEVELS (Configurable)
+================================================================================
+
+Default score levels (can be customized in Settings):
+
+LEVEL        | SCORE RANGE | DEFAULT COLOR
+-------------|-------------|---------------
+Below        | 3.00 - 4.24 | Red (#d9534f)
+Meets        | 4.25 - 4.49 | Orange (#f0ad4e)
+Good         | 4.50 - 4.74 | Light Green (#5cb85c)
+Very Good    | 4.75 - 4.99 | Green (#28a745)
+Exceptional  | 5.00        | Dark Green (#1e7b34)
+
+Score levels can be customized through the Settings modal.
+
+================================================================================
+6. WEIGHT USAGE SUMMARY
+================================================================================
+
+| Level                    | Weights Used?                              |
+|--------------------------|---------------------------------------------|
+| KR -> Objective Score    | NO (simple average, weights are visual only)|
+| Objective -> Department  | YES (weighted average)                      |
+| Department Evaluations   | YES (60% OKR, 20% Director, 20% HR)         |
+
+================================================================================
+7. PERCENTAGE CALCULATION
+================================================================================
+
+Percentages are calculated relative to the score range:
+
+  Percentage = ((Score - Min Score) / (Max Score - Min Score)) * 100
+
+With default levels (3.0 to 5.0):
+  Percentage = ((Score - 3.0) / 2.0) * 100
+
+Example:
+  Score 4.50 = ((4.50 - 3.0) / 2.0) * 100 = 75%
+
+================================================================================

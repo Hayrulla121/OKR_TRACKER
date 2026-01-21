@@ -106,15 +106,22 @@ public class OkrController {
 
     @GetMapping("/export/excel")
     public ResponseEntity<byte[]> exportToExcel() {
-        byte[] excelData = excelExportService.exportToExcel(okrService.getAllDepartments());
+        try {
+            List<DepartmentDTO> departments = okrService.getAllDepartments();
+            byte[] excelData = excelExportService.exportToExcel(departments);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDispositionFormData("attachment", "okr_export.xlsx");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "okr_export.xlsx");
 
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(excelData);
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(excelData);
+        } catch (Exception e) {
+            System.err.println("Excel export failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // ==================== DEMO DATA ====================

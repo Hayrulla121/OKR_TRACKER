@@ -28,8 +28,9 @@ public class DepartmentScoreResult {
     private Double hrEvaluationNumeric;      // 5.0, 4.75, 4.5, 4.25 (converted)
     private String hrComment;                // HR's comment
 
-    // Business Block (separate display, no weight)
-    private Double businessBlockEvaluation;  // 1-5
+    // Business Block (separate display, no weight in final calculation)
+    private Double businessBlockEvaluation;  // 4.25-5.0 (converted from 1-5 stars)
+    private Integer businessBlockStars;      // 1-5 stars (for UI display, same as Director)
     private String businessBlockComment;     // Business Block's comment
 
     // Combined final score

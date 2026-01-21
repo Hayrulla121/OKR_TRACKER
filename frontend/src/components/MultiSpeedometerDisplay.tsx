@@ -174,6 +174,11 @@ const MultiSpeedometerDisplay: React.FC<Props> = ({ scores }) => {
                             <p className="text-center text-xs text-gray-400">
                                 {t.notIncludedInWeightedScore}
                             </p>
+                            {scores.businessBlockStars && (
+                                <p className="text-center text-xs text-gray-500">
+                                    {'★'.repeat(scores.businessBlockStars)}{'☆'.repeat(5 - scores.businessBlockStars)}
+                                </p>
+                            )}
                             {scores.businessBlockComment && (
                                 <div className="mt-1 p-1.5 bg-teal-50 rounded text-xs text-teal-700 italic truncate" title={scores.businessBlockComment}>
                                     "{scores.businessBlockComment}"

@@ -45,4 +45,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return true if email exists, false otherwise
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Find all users belonging to a specific department
+     *
+     * @param department the department to search for
+     * @return list of users in the department
+     */
+    java.util.List<User> findByDepartment(com.example.objectkeyresulttracker.entity.Department department);
 }

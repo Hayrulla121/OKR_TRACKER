@@ -85,6 +85,32 @@ public class OkrService {
 
     @Transactional
     public void deleteDepartment(String id) {
+        Department dept = departmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Department not found: " + id));
+
+        // 1. Delete all evaluations for this department
+        try {
+            UUID deptUuid = UUID.fromString(id);
+            var evaluations = evaluationRepository.findByTargetTypeAndTargetId("DEPARTMENT", deptUuid);
+            evaluationRepository.deleteAll(evaluations);
+        } catch (IllegalArgumentException e) {
+            // ID is not a valid UUID, skip evaluation cleanup
+        }
+
+        // 2. Unassign all users from this department (set department to null)
+        var usersInDept = userRepository.findByDepartment(dept);
+        for (var user : usersInDept) {
+            user.setDepartment(null);
+            userRepository.save(user);
+        }
+
+        // 3. Clear departmentLeader reference if set
+        if (dept.getDepartmentLeader() != null) {
+            dept.setDepartmentLeader(null);
+            departmentRepository.save(dept);
+        }
+
+        // 4. Now delete the department (objectives will be cascade deleted)
         departmentRepository.deleteById(id);
     }
 
@@ -260,20 +286,42 @@ public class OkrService {
                 .build();
     }
 
-    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
     @Transactional
     public List<DepartmentDTO> loadDemoData() {
         try {
-            // Check if demo data already exists - skip loading if users already exist
-            if (userRepository.count() > 0) {
-                System.out.println("Demo data already exists, skipping initialization.");
-                return getAllDepartments();
-            }
+            System.out.println("Loading demo data...");
 
-            // Clear existing data (in correct order to respect foreign key constraints)
+            // Clear existing data in correct order to respect foreign key constraints:
+            // 1. First delete evaluations (no dependencies)
             evaluationRepository.deleteAll();
+            System.out.println("  - Cleared evaluations");
+
+            // 2. Unassign all users from departments (to break FK constraint)
+            var allUsers = userRepository.findAll();
+            for (var user : allUsers) {
+                user.setDepartment(null);
+            }
+            userRepository.saveAll(allUsers);
+            System.out.println("  - Unassigned users from departments");
+
+            // 3. Clear department leaders (to break FK constraint)
+            var allDepts = departmentRepository.findAll();
+            for (var dept : allDepts) {
+                dept.setDepartmentLeader(null);
+            }
+            departmentRepository.saveAll(allDepts);
+            System.out.println("  - Cleared department leaders");
+
+            // 4. Now we can safely delete departments (objectives cascade delete automatically)
             departmentRepository.deleteAll();
+            System.out.println("  - Deleted all departments and objectives");
+
+            // 5. Finally delete users
             userRepository.deleteAll();
+            System.out.println("  - Deleted all users");
+
+            // Flush deletes before creating new data
+            entityManager.flush();
 
             // Create PMO department with demo objectives
             Department pmoDept = new Department();

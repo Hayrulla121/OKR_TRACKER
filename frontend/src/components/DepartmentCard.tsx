@@ -133,13 +133,14 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
     };
 
     // Map backend's 5-threshold structure to dynamic score levels
+    // This must match the mapping logic in SettingsModal.tsx mapThresholdsToBackend()
     const getThresholdsForDisplay = (kr: KeyResult): { name: string; value: number; color: string }[] => {
         const backendThresholds = [
-            kr.thresholds.below,
-            kr.thresholds.meets,
-            kr.thresholds.good,
-            kr.thresholds.veryGood,
-            kr.thresholds.exceptional
+            kr.thresholds.below,      // index 0: always maps to level index 0
+            kr.thresholds.meets,      // index 1: maps to level index min(1, numLevels-1)
+            kr.thresholds.good,       // index 2: maps to level index min(2, numLevels-1)
+            kr.thresholds.veryGood,   // index 3: maps to level index min(3, numLevels-1)
+            kr.thresholds.exceptional // index 4: maps to level index numLevels-1
         ];
 
         if (scoreLevels.length === 0) {
@@ -154,32 +155,40 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({ department, objective, 
         }
 
         const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
+        const numLevels = sortedLevels.length;
         const result: { name: string; value: number; color: string }[] = [];
 
-        if (sortedLevels.length === 5) {
-            // Direct mapping
+        // Map using same index logic as mapThresholdsToBackend:
+        // Level 0 → below (backend index 0)
+        // Level 1 → meets (backend index 1) if numLevels > 1
+        // Level 2 → good (backend index 2) if numLevels > 2
+        // Level 3 → veryGood (backend index 3) if numLevels > 3
+        // Level 4+ → exceptional (backend index 4)
+
+        if (numLevels >= 5) {
+            // 5 or more levels: direct mapping
             sortedLevels.forEach((level, i) => {
-                result.push({ name: level.name, value: backendThresholds[i], color: level.color });
+                result.push({ name: level.name, value: backendThresholds[Math.min(i, 4)], color: level.color });
             });
-        } else if (sortedLevels.length === 4) {
-            // Map: below->0, meets->1, good->2, exceptional->4
+        } else if (numLevels === 4) {
+            // 4 levels: [0, 1, 2, 3] maps to backend [0, 1, 2, 3]
             result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
             result.push({ name: sortedLevels[1].name, value: backendThresholds[1], color: sortedLevels[1].color });
             result.push({ name: sortedLevels[2].name, value: backendThresholds[2], color: sortedLevels[2].color });
-            result.push({ name: sortedLevels[3].name, value: backendThresholds[4], color: sortedLevels[3].color });
-        } else if (sortedLevels.length === 3) {
-            // Map: below->0, good->2, exceptional->4
+            result.push({ name: sortedLevels[3].name, value: backendThresholds[3], color: sortedLevels[3].color });
+        } else if (numLevels === 3) {
+            // 3 levels: [0, 1, 2] maps to backend [0, 1, 2]
             result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
-            result.push({ name: sortedLevels[1].name, value: backendThresholds[2], color: sortedLevels[1].color });
-            result.push({ name: sortedLevels[2].name, value: backendThresholds[4], color: sortedLevels[2].color });
-        } else if (sortedLevels.length === 2) {
-            // Map: below->0, exceptional->4
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[1], color: sortedLevels[1].color });
+            result.push({ name: sortedLevels[2].name, value: backendThresholds[2], color: sortedLevels[2].color });
+        } else if (numLevels === 2) {
+            // 2 levels: [0, 1] maps to backend [0, 1]
             result.push({ name: sortedLevels[0].name, value: backendThresholds[0], color: sortedLevels[0].color });
-            result.push({ name: sortedLevels[1].name, value: backendThresholds[4], color: sortedLevels[1].color });
+            result.push({ name: sortedLevels[1].name, value: backendThresholds[1], color: sortedLevels[1].color });
         } else {
-            // Single level or empty - just show whatever we have
-            sortedLevels.forEach((level, i) => {
-                result.push({ name: level.name, value: backendThresholds[Math.min(i, 4)], color: level.color });
+            // 1 level or edge case
+            sortedLevels.forEach((level) => {
+                result.push({ name: level.name, value: backendThresholds[0], color: level.color });
             });
         }
 

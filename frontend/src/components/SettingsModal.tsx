@@ -121,32 +121,73 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ departments, onClose, onU
 
   // Map dynamic thresholds to the backend's 5-column structure
   const mapThresholdsToBackend = () => {
+    // Sort levels by scoreValue ascending (worst to best)
     const sortedLevels = [...scoreLevels].sort((a, b) => a.scoreValue - b.scoreValue);
+    const numLevels = sortedLevels.length;
 
-    // Create a name-to-threshold mapping
-    const thresholdByName: Record<string, number> = {};
-    sortedLevels.forEach(level => {
-      thresholdByName[level.name] = parseFloat(dynamicThresholds[level.name] || '0');
-    });
+    // Extract threshold values in sorted order (by score level position)
+    const thresholdValues = sortedLevels.map(level =>
+      parseFloat(dynamicThresholds[level.name] || '0')
+    );
 
-    // Map to backend's 5 expected fields based on actual level names
-    // Default fallback: use adjacent levels if a specific one doesn't exist
-    const findThreshold = (preferredNames: string[]): number => {
-      for (const name of preferredNames) {
-        if (thresholdByName[name] !== undefined) {
-          return thresholdByName[name];
-        }
-      }
-      // Fallback: return first available threshold
-      return Object.values(thresholdByName)[0] || 0;
-    };
+    // Backend maps these 5 fields to score level indices:
+    // below → index 0
+    // meets → index min(1, numLevels-1)
+    // good → index min(2, numLevels-1)
+    // veryGood → index min(3, numLevels-1)
+    // exceptional → index numLevels-1
+    //
+    // We need to send the threshold values that correspond to those indices
+
+    let below, meets, good, veryGood, exceptional;
+
+    if (numLevels >= 5) {
+      // 5 or more levels: map directly by index
+      below = thresholdValues[0];
+      meets = thresholdValues[1];
+      good = thresholdValues[2];
+      veryGood = thresholdValues[3];
+      exceptional = thresholdValues[4];
+    } else if (numLevels === 4) {
+      // 4 levels: indices [0, 1, 2, 3]
+      // Backend expects: below=0, meets=1, good=2, veryGood=3, exceptional=3
+      below = thresholdValues[0];
+      meets = thresholdValues[1];
+      good = thresholdValues[2];
+      veryGood = thresholdValues[3];  // Backend maps this to index 3
+      exceptional = thresholdValues[3]; // Backend also maps this to index 3
+    } else if (numLevels === 3) {
+      // 3 levels: indices [0, 1, 2]
+      // Backend expects: below=0, meets=1, good=2, veryGood=2, exceptional=2
+      below = thresholdValues[0];
+      meets = thresholdValues[1];
+      good = thresholdValues[2];     // Backend maps this to index 2
+      veryGood = thresholdValues[2];  // Backend maps this to index 2
+      exceptional = thresholdValues[2]; // Backend maps this to index 2
+    } else if (numLevels === 2) {
+      // 2 levels: indices [0, 1]
+      // Backend expects: below=0, meets=1, good=1, veryGood=1, exceptional=1
+      below = thresholdValues[0];
+      meets = thresholdValues[1];     // Backend maps this to index 1
+      good = thresholdValues[1];      // Backend maps this to index 1
+      veryGood = thresholdValues[1];  // Backend maps this to index 1
+      exceptional = thresholdValues[1]; // Backend maps this to index 1
+    } else {
+      // Edge case: single level or no levels
+      const val = thresholdValues[0] || 0;
+      below = val;
+      meets = val;
+      good = val;
+      veryGood = val;
+      exceptional = val;
+    }
 
     return {
-      below: findThreshold(['Below', 'Meets', 'Good']),
-      meets: findThreshold(['Meets', 'Good', 'Below']),
-      good: findThreshold(['Good', 'Meets', 'Very Good']),
-      veryGood: findThreshold(['Very Good', 'Good', 'Exceptional']),
-      exceptional: findThreshold(['Exceptional', 'Very Good', 'Good'])
+      below,
+      meets,
+      good,
+      veryGood,
+      exceptional
     };
   };
 

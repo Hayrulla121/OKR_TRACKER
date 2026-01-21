@@ -45,6 +45,7 @@ export interface DepartmentScoreResult {
   hrEvaluationNumeric?: number;
   hrComment?: string;
   businessBlockEvaluation?: number;
+  businessBlockStars?: number;
   businessBlockComment?: string;
   finalCombinedScore?: number;
   finalPercentage?: number;

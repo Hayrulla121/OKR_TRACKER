@@ -495,10 +495,21 @@ public class ScoreCalculationService {
         Double hrScore = hrLetter != null ? convertHrLetterToNumeric(hrLetter) : null;
         String hrComment = hrEval != null ? hrEval.getComment() : null;
 
-        // 5. Extract Business Block evaluation
+        // 5. Extract Business Block evaluation (stored as 1-5 stars, convert to 4.25-5.0 scale like Director)
         Evaluation businessBlockEval = evals.get(EvaluatorType.BUSINESS_BLOCK);
-        Double businessBlockScore = businessBlockEval != null ? businessBlockEval.getNumericRating() : null;
-        String businessBlockComment = businessBlockEval != null ? businessBlockEval.getComment() : null;
+        Integer businessBlockStars = null;
+        Double businessBlockScore = null;
+        String businessBlockComment = null;
+        if (businessBlockEval != null) {
+            // Business Block stores star rating (1-5) directly in numericRating
+            Double storedRating = businessBlockEval.getNumericRating();
+            if (storedRating != null) {
+                businessBlockStars = storedRating.intValue(); // The raw star value (1-5)
+                // Convert to 4.25-5.0 scale to match Director format: 4.25 + (stars - 1) * 0.1875
+                businessBlockScore = 4.25 + (businessBlockStars - 1) * 0.1875;
+            }
+            businessBlockComment = businessBlockEval.getComment();
+        }
 
         // 6. Calculate weighted final score
         Double finalScore = null;
@@ -521,6 +532,7 @@ public class ScoreCalculationService {
                 .hrEvaluationNumeric(hrScore)
                 .hrComment(hrComment)
                 .businessBlockEvaluation(businessBlockScore)
+                .businessBlockStars(businessBlockStars)
                 .businessBlockComment(businessBlockComment)
                 .finalCombinedScore(finalScore)
                 .finalPercentage(finalScore != null ? scoreToPercentage(finalScore) : null)
